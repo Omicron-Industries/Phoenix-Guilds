@@ -26,13 +26,6 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
-        name = 'GTCEu Maven'
-        url = 'https://maven.gtceu.com'
-        content {
-            includeGroup 'com.gregtechceu.gtceu'
-        }
-    }
-    maven {
         name 'FirstDarkDev'
         url "https://maven.firstdark.dev/snapshots/"
     }
@@ -113,7 +106,6 @@ legacyForge {
             sourceSet = sourceSets.main
             // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
             programArguments.addAll('--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath())
-            programArguments.addAll('--existing-mod', 'gtceu')
         }
     }
 
@@ -129,7 +121,7 @@ legacyForge {
 }
 jar {
     manifest.attributes([
-            "MixinConfigs": "examplemod.mixins.json"
+            "MixinConfigs": "phoenix_guilds.mixins.json"
     ])
 }
 
@@ -138,20 +130,9 @@ apply from: "$rootDir/gradle/scripts/spotless.gradle"
 dependencies {
     compileOnly("org.jetbrains:annotations:26.0.1")
 
-    // Mixin
-    annotationProcessor('org.spongepowered:mixin:0.8.5:processor')
 
-    // JEI, EMI, Jade
-    modCompileOnly("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
-    modCompileOnly("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
-    modRuntimeOnly("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
-    modRuntimeOnly("dev.emi:emi-forge:${emi_version}+${minecraft_version}")
-    modRuntimeOnly("curse.maven:jade-324717:5390389")
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
-    // GregTech and dependencies
-    modImplementation("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtceu_version}:slim") { transitive = false }
-    modImplementation("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
-    modImplementation("com.tterrag.registrate:Registrate:${registrate_version}")
     modImplementation("dev.toma.configuration:configuration-forge-${minecraft_version}:${configuration_version}")
 
     // lombok
@@ -159,11 +140,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
 }
 
-// See com.example.examplemod.mixin.DummyMixin for information about mixins
-mixin {
-    add sourceSets.main, "mixins.${mod_id}.refmap.json"
-    config "${mod_id}.mixins.json"
-}
+
 
 tasks.named('processResources', ProcessResources).configure {
     var properties = [
@@ -193,4 +170,15 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
     options.release.set(17)
     options.compilerArgs << "-Aquiet=true" // Suppress mixin notes
+}
+
+tasks.register('publishToDomains', Copy) {
+    group = 'phoenix'
+    description = 'Builds this mod and copies the jar into ../Phoenix-Domains/libs, so Domains picks up local changes.'
+    dependsOn 'reobfJar'
+    from(layout.buildDirectory.dir('libs')) {
+        include '*.jar'
+        exclude '*-sources.jar'
+    }
+    into '../Phoenix-Domains/libs'
 }
