@@ -182,3 +182,14 @@ tasks.register('publishToDomains', Copy) {
     }
     into '../Phoenix-Domains/libs'
 }
+
+tasks.register('publishToSolaris', Copy) {
+    group = 'phoenix'
+    description = 'Builds this mod and copies the jar into ../Solaris/libs, so Solaris\'s optional guild-sharing integration picks up local changes.'
+    dependsOn 'reobfJar'
+    from(layout.buildDirectory.dir('libs')) {
+        include '*.jar'
+        exclude '*-sources.jar'
+    }
+    into '../Solaris/libs'
+}

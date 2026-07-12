@@ -364,15 +364,15 @@ public class GuildEvents {
             return;
         }
         if (mgr.isInGuild(player.getUUID())) {
-            send(player, "§cYou are already in a guild.");
+            send(player, "§cYou are already in a Guild.");
             return;
         }
         if (mgr.getGuildByName(name).isPresent()) {
-            send(player, "§cA guild named '§f" + name + "§c' already exists.");
+            send(player, "§cA Guild named '§f" + name + "§c' already exists.");
             return;
         }
         Guild g = mgr.createGuild(name, player.getUUID());
-        send(player, "§aCreated guild §f" + g.getName() + "§a.");
+        send(player, "§aCreated Guild §f" + g.getName() + "§a.");
         syncToPlayer(player, mgr);
         broadcastAllGuildList(player.getServer(), mgr);
     }
@@ -380,7 +380,7 @@ public class GuildEvents {
     public static void handleInvite(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -394,11 +394,11 @@ public class GuildEvents {
             return;
         }
         if (mgr.isInGuild(target.getUUID())) {
-            send(player, "§c" + targetName + " is already in a guild.");
+            send(player, "§c" + targetName + " is already in a Guild.");
             return;
         }
         if (g.isFull()) {
-            send(player, "§cYour guild is full (§f" + Guild.MAX_MEMBERS + "§c members max).");
+            send(player, "§cYour Guild is full (§f" + Guild.MAX_MEMBERS + "§c members max).");
             return;
         }
         mgr.addMember(g.getId(), target.getUUID());
@@ -413,7 +413,7 @@ public class GuildEvents {
     public static void handleRemove(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -423,7 +423,7 @@ public class GuildEvents {
         }
         ServerPlayer target = player.getServer().getPlayerList().getPlayerByName(targetName);
         if (target == null || !g.isMember(target.getUUID())) {
-            send(player, "§c" + targetName + " is not in your guild or is not online.");
+            send(player, "§c" + targetName + " is not in your Guild or is not online.");
             return;
         }
         if (g.getRank(target.getUUID()).ordinal() >= g.getRank(player.getUUID()).ordinal()) {
@@ -433,7 +433,7 @@ public class GuildEvents {
         mgr.removeMember(g.getId(), target.getUUID());
         g.addLog(player.getName().getString() + " removed " + targetName + ".");
         send(player, "§cRemoved §f" + targetName + " §cfrom §f" + g.getName() + "§c.");
-        target.sendSystemMessage(Component.literal("§cYou were removed from guild §f" + g.getName() + "§c."));
+        target.sendSystemMessage(Component.literal("§cYou were removed from Guild §f" + g.getName() + "§c."));
         syncToGuild(g, player.getServer(), mgr);
         syncToPlayer(target, mgr);
         broadcastAllGuildList(player.getServer(), mgr);
@@ -442,15 +442,15 @@ public class GuildEvents {
     public static void handleLeave(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
         String name = g.getName();
         UUID gid = g.getId();
-        g.addLog(player.getName().getString() + " left the guild.");
+        g.addLog(player.getName().getString() + " left the Guild.");
         mgr.removeMember(gid, player.getUUID());
-        send(player, "§cLeft guild §f" + name + "§c.");
+        send(player, "§cLeft Guild §f" + name + "§c.");
         syncToPlayer(player, mgr);
         mgr.getGuildById(gid).ifPresent(s -> syncToGuild(s, player.getServer(), mgr));
         broadcastAllGuildList(player.getServer(), mgr);
@@ -459,21 +459,21 @@ public class GuildEvents {
     public static void handleDisband(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
         if (!g.getOwner().equals(player.getUUID())) {
-            send(player, "§cOnly the owner can disband the guild.");
+            send(player, "§cOnly the owner can delete the Guild.");
             return;
         }
         String name = g.getName();
         List<ServerPlayer> allOnline = onlineMembers(g, player.getServer());
         for (ServerPlayer m : allOnline)
             if (!m.getUUID().equals(player.getUUID()))
-                m.sendSystemMessage(Component.literal("§cGuild §f" + name + " §cwas disbanded."));
+                m.sendSystemMessage(Component.literal("§cGuild §f" + name + " §cwas deleted."));
         mgr.disbandGuild(g.getId());
-        send(player, "§cDisbanded guild §f" + name + "§c.");
+        send(player, "§cDeleted Guild §f" + name + "§c.");
         for (ServerPlayer m : allOnline) syncToPlayer(m, mgr);
         broadcastAllGuildList(player.getServer(), mgr);
     }
@@ -483,13 +483,13 @@ public class GuildEvents {
     public static void handlePromote(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
         ServerPlayer target = player.getServer().getPlayerList().getPlayerByName(targetName);
         if (target == null || !g.isMember(target.getUUID())) {
-            send(player, "§c" + targetName + " is not in your guild or is not online.");
+            send(player, "§c" + targetName + " is not in your Guild or is not online.");
             return;
         }
         String result = mgr.promotePlayer(g.getId(), player.getUUID(), target.getUUID());
@@ -502,7 +502,7 @@ public class GuildEvents {
                         .literal("§aYou were promoted to §f" + newRank.label() + " §ain §f" + g.getName() + "§a."));
                 syncToGuild(g, player.getServer(), mgr);
             }
-            case "no_permission" -> send(player, "§cOnly the guild owner can promote players.");
+            case "no_permission" -> send(player, "§cOnly the Guild owner can promote players.");
             case "already_owner" -> send(player, "§cUse /guilds transfer to make them owner.");
             default -> send(player, "§cCould not promote: " + result);
         }
@@ -511,13 +511,13 @@ public class GuildEvents {
     public static void handleDemote(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
         ServerPlayer target = player.getServer().getPlayerList().getPlayerByName(targetName);
         if (target == null || !g.isMember(target.getUUID())) {
-            send(player, "§c" + targetName + " is not in your guild or is not online.");
+            send(player, "§c" + targetName + " is not in your Guild or is not online.");
             return;
         }
         String result = mgr.demotePlayer(g.getId(), player.getUUID(), target.getUUID());
@@ -528,7 +528,7 @@ public class GuildEvents {
                 target.sendSystemMessage(Component.literal("§7You were demoted to Member in §f" + g.getName() + "§7."));
                 syncToGuild(g, player.getServer(), mgr);
             }
-            case "no_permission" -> send(player, "§cOnly the guild owner can demote players.");
+            case "no_permission" -> send(player, "§cOnly the Guild owner can demote players.");
             case "cant_demote_owner" -> send(player, "§cCannot demote the owner.");
             case "already_member" -> send(player, "§c" + targetName + " is already a Member.");
             default -> send(player, "§cCould not demote: " + result);
@@ -538,23 +538,23 @@ public class GuildEvents {
     public static void handleTransfer(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
         ServerPlayer target = player.getServer().getPlayerList().getPlayerByName(targetName);
         if (target == null || !g.isMember(target.getUUID())) {
-            send(player, "§c" + targetName + " is not in your guild or is not online.");
+            send(player, "§c" + targetName + " is not in your Guild or is not online.");
             return;
         }
         String result = mgr.transferOwnership(g.getId(), player.getUUID(), target.getUUID());
         if ("ok".equals(result)) {
             g.addLog(player.getName().getString() + " transferred ownership to " + targetName + ".");
             send(player, "§aTransferred ownership of §f" + g.getName() + " §ato §f" + targetName + "§a.");
-            target.sendSystemMessage(Component.literal("§aYou are now the owner of guild §f" + g.getName() + "§a."));
+            target.sendSystemMessage(Component.literal("§aYou are now the owner of Guild §f" + g.getName() + "§a."));
             syncToGuild(g, player.getServer(), mgr);
         } else {
-            send(player, "§cOnly the guild owner can transfer ownership.");
+            send(player, "§cOnly the Guild owner can transfer ownership.");
         }
     }
 
@@ -563,7 +563,7 @@ public class GuildEvents {
     public static void handleSetMotd(ServerPlayer player, GuildManager mgr, String text) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -580,7 +580,7 @@ public class GuildEvents {
     public static void handleSetDesc(ServerPlayer player, GuildManager mgr, String text) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -596,12 +596,12 @@ public class GuildEvents {
     public static void handleToggleFF(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
         if (!mgr.toggleFriendlyFire(g.getId(), player.getUUID())) {
-            send(player, "§cOnly the guild owner can toggle friendly fire.");
+            send(player, "§cOnly the Guild owner can toggle friendly fire.");
             return;
         }
         boolean nowOn = g.isFriendlyFire();
@@ -613,7 +613,7 @@ public class GuildEvents {
     public static void handleSetHome(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -622,10 +622,10 @@ public class GuildEvents {
                 player.getX(), player.getY(), player.getZ(),
                 player.getYRot(), player.getXRot());
         if (!ok) {
-            send(player, "§cOfficers and above can set the guild home.");
+            send(player, "§cOfficers and above can set the Guild home.");
             return;
         }
-        g.addLog(player.getName().getString() + " set guild home.");
+        g.addLog(player.getName().getString() + " set Guild home.");
         send(player, "§aGuild home set to your current location.");
         syncToGuild(g, player.getServer(), mgr);
     }
@@ -633,7 +633,7 @@ public class GuildEvents {
     public static void handleHome(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -670,7 +670,7 @@ public class GuildEvents {
     public static void handleGuildChat(ServerPlayer player, GuildManager mgr, String message) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -685,7 +685,7 @@ public class GuildEvents {
     public static void handleAllyChat(ServerPlayer player, GuildManager mgr, String message) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -712,7 +712,7 @@ public class GuildEvents {
     public static void handleAllyRequest(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -739,7 +739,7 @@ public class GuildEvents {
             }
             case "already_ally" -> send(player, "§cAlready allied with §f" + targetName + "§c.");
             case "already_sent" -> send(player, "§cRequest already pending.");
-            case "self" -> send(player, "§cYou can't ally with your own guild.");
+            case "self" -> send(player, "§cYou can't ally with your own Guild.");
             case "guild_not_found" -> send(player, "§cGuild '§f" + targetName + "§c' not found.");
         }
     }
@@ -747,7 +747,7 @@ public class GuildEvents {
     public static void handleAllyAccept(ServerPlayer player, GuildManager mgr, String senderName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -775,7 +775,7 @@ public class GuildEvents {
     public static void handleAllyDecline(ServerPlayer player, GuildManager mgr, String senderName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -798,7 +798,7 @@ public class GuildEvents {
     public static void handleAllyBreak(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -828,7 +828,7 @@ public class GuildEvents {
     public static void handleWikiSet(ServerPlayer player, GuildManager mgr, String arg) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         int sep = arg.indexOf('');
@@ -854,12 +854,12 @@ public class GuildEvents {
     public static void handleSetFlag(ServerPlayer player, GuildManager mgr, String flagData) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
         if (!g.hasRank(player.getUUID(), GuildRank.OFFICER)) {
-            send(player, "§cOfficers and above can edit the guild flag.");
+            send(player, "§cOfficers and above can edit the Guild flag.");
             return;
         }
         if (flagData == null || flagData.length() != 128 || !flagData.matches("[0-9a-f]+")) {
@@ -868,7 +868,7 @@ public class GuildEvents {
         }
         g.setFlagData(flagData);
         mgr.setDirty();
-        g.addLog(player.getName().getString() + " updated the guild flag.");
+        g.addLog(player.getName().getString() + " updated the Guild flag.");
         send(player, "§aGuild flag updated.");
         syncToGuild(g, player.getServer(), mgr);
     }
@@ -876,7 +876,7 @@ public class GuildEvents {
     public static void handleWikiDelete(ServerPlayer player, GuildManager mgr, String title) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         String result = mgr.deleteWikiPage(opt.get().getId(), player.getUUID(), title);
@@ -896,7 +896,7 @@ public class GuildEvents {
     private static void cmdInfo(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
@@ -923,7 +923,7 @@ public class GuildEvents {
     private static void cmdList(ServerPlayer player, GuildManager mgr) {
         var all = mgr.getAllGuilds();
         if (all.isEmpty()) {
-            send(player, "§7No guilds exist yet.");
+            send(player, "§7No Guilds exist yet.");
             return;
         }
         StringBuilder sb = new StringBuilder("§6[Guilds]");
@@ -935,7 +935,7 @@ public class GuildEvents {
     private static void cmdLog(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
-            send(player, "§cYou are not in a guild.");
+            send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();

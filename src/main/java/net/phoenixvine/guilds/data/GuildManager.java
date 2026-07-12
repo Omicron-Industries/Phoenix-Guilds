@@ -74,7 +74,7 @@ public class GuildManager extends SavedData {
         Guild g = new Guild(UUID.randomUUID(), name, ownerUUID);
         guilds.put(g.getId(), g);
         memberIndex.put(ownerUUID, g.getId());
-        g.addLog(ownerUUID + " founded the guild.");
+        g.addLog(ownerUUID + " founded the Guild.");
         setDirty();
         return g;
     }

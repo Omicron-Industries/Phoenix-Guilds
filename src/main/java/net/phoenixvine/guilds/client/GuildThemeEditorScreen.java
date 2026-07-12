@@ -113,7 +113,7 @@ public class GuildThemeEditorScreen extends Screen {
 
         int btnX = width - sideW + 10;
         int btnW = sideW - 20;
-        addRenderableWidget(Button.builder(Component.literal("Save  (Ctrl+S)"), b -> save())
+        addRenderableWidget(Button.builder(Component.literal("Save (Ctrl+S) and quit"), b -> save())
                 .bounds(btnX, ctrlY + 20, btnW, 18).build());
         addRenderableWidget(Button.builder(Component.literal("Exit"), b -> {
             if (hasChanges()) {
@@ -168,7 +168,7 @@ public class GuildThemeEditorScreen extends Screen {
         savedSnapshot = snap(GuildTheme.current(), id);
         confirmActive = false;
         pendingAction = null;
-        init();
+        onClose();
     }
 
     // ── Undo ─────────────────────────────────────────────────────────────────
@@ -241,7 +241,7 @@ public class GuildThemeEditorScreen extends Screen {
     public void render(GuiGraphics g, int mx, int my, float pt) {
         int sideW = Math.max(175, width / 4);
 
-        g.fill(0, 0, width, height, C_BG);
+        g.fill(0, 0, width, height, C_BG | 0xFF000000);
         g.fill(width - sideW, 0, width, height, C_PANEL);
         g.fill(width - sideW, 0, width - sideW + 1, height, C_BORDER);
 

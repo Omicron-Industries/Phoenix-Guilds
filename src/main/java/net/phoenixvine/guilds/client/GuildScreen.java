@@ -84,10 +84,10 @@ public class GuildScreen extends Screen {
 
     private void buildGuildWidgets() {
         if (!ClientGuildCache.isInGuild()) {
-            primaryBox = box(px + 10, py + CONTENT_TOP + 24, W - 20, 16, "Guild name...");
+            primaryBox = box(px + 10, py + CONTENT_TOP + 32, W - 20, 16, "Guild name...");
             primaryBox.setMaxLength(32);
             addRenderableWidget(primaryBox);
-            addRenderableWidget(btn("Create Guild", px + W / 2 - 55, py + CONTENT_TOP + 46, 110, 18,
+            addRenderableWidget(btn("Create Guild", px + W / 2 - 55, py + CONTENT_TOP + 54, 110, 18,
                     () -> act(C2SGuildActionPacket.Action.CREATE, primaryBox.getValue().trim())));
             return;
         }
@@ -107,16 +107,16 @@ public class GuildScreen extends Screen {
                 ClientGuildCache.isOwner() ? halfW : W - 20, 18,
                 () -> act(C2SGuildActionPacket.Action.LEAVE, "")));
         if (ClientGuildCache.isOwner())
-            addRenderableWidget(btn("Disband", px + 14 + halfW, btnY, halfW, 18,
+            addRenderableWidget(btn("Delete Guild", px + 14 + halfW, btnY, halfW, 18,
                     () -> act(C2SGuildActionPacket.Action.DISBAND, "")));
     }
 
     private void buildAlliesWidgets() {
         if (!ClientGuildCache.isInGuild() || !ClientGuildCache.isAtLeastOfficer()) return;
-        secondaryBox = box(px + 10, py + H - 52, W - 130, 14, "Guild name...");
+        secondaryBox = box(px + 10, py + H - 52, W - 170, 14, "Guild name...");
         secondaryBox.setMaxLength(64);
         addRenderableWidget(secondaryBox);
-        addRenderableWidget(btn("Send Request", px + W - 116, py + H - 53, 106, 16,
+        addRenderableWidget(btn("Send Alliance request", px + W - 156, py + H - 53, 146, 16,
                 () -> {
                     act(C2SGuildActionPacket.Action.ALLY_REQUEST, secondaryBox.getValue().trim());
                     secondaryBox.setValue("");
@@ -198,8 +198,8 @@ public class GuildScreen extends Screen {
     private void renderGuildTab(GuiGraphics g) {
         int y = py + CONTENT_TOP;
         if (!ClientGuildCache.isInGuild()) {
-            g.drawCenteredString(font, "You are not in a guild.", px + W / 2, y + 4, C_DIM);
-            g.drawString(font, "Guild name:", px + 10, y + 16, C_DIM, false);
+            g.drawCenteredString(font, "You are not in a Guild.", px + W / 2, y + 4, C_DIM);
+            g.drawString(font, "Guild Name:", px + 10, y + 20, C_DIM, false);
             return;
         }
 
@@ -296,7 +296,7 @@ public class GuildScreen extends Screen {
             inlineBtns.add(new InlineBtn(px + W - 72, py + H - 70, 62, 14,
                     () -> minecraft.setScreen(new GuildFlagEditorScreen(this)),
                     0xFF0A1A33, 0xFF10285A, "Edit Flag"));
-            g.drawString(font, "Invite player:", px + 10, py + H - 70, C_DIM, false);
+            g.drawString(font, "Invite Player:", px + 10, py + H - 65, C_DIM, false);
         }
         g.fill(px, py + H - 34, px + W, py + H - 33, C_BORDER2);
     }
@@ -305,7 +305,7 @@ public class GuildScreen extends Screen {
 
     private void renderAlliesTab(GuiGraphics g) {
         if (!ClientGuildCache.isInGuild()) {
-            g.drawCenteredString(font, "You must be in a guild to form alliances.", px + W / 2, py + 100, C_DIM);
+            g.drawCenteredString(font, "You must be in a Guild to form alliances.", px + W / 2, py + 100, C_DIM);
             return;
         }
         int y = py + CONTENT_TOP;
@@ -340,7 +340,7 @@ public class GuildScreen extends Screen {
         y += 14;
         List<S2CGuildSyncPacket.AllyEntry> allies = ClientGuildCache.allies;
         if (allies.isEmpty()) {
-            g.drawString(font, "No allies yet.", px + 12, y + 3, C_FAINT, false);
+            g.drawString(font, "No Allies yet.", px + 12, y + 3, C_FAINT, false);
         } else {
             for (int i = 0; i < allies.size(); i++) {
                 S2CGuildSyncPacket.AllyEntry a = allies.get(i);
@@ -372,7 +372,7 @@ public class GuildScreen extends Screen {
         }
 
         if (ClientGuildCache.isAtLeastOfficer())
-            g.drawString(font, "Send alliance request:", px + 10, py + H - 70, C_DIM, false);
+            g.drawString(font, "Send Alliance request:", px + 10, py + H - 63, C_DIM, false);
     }
 
     // ── Browse tab ────────────────────────────────────────────────────────────
@@ -397,16 +397,16 @@ public class GuildScreen extends Screen {
         }
         RenderSystem.disableScissor();
 
-        if (all.isEmpty()) g.drawCenteredString(font, "No guilds exist yet.", px + W / 2, listTop + 4, C_DIM);
+        if (all.isEmpty()) g.drawCenteredString(font, "No Guilds exist yet.", px + W / 2, listTop + 4, C_DIM);
         if (!ClientGuildCache.isInGuild())
-            g.drawString(font, "Create a new guild:", px + 10, py + H - 70, C_DIM, false);
+            g.drawString(font, "Create a new Guild:", px + 10, py + H - 70, C_DIM, false);
     }
 
     // ── Log tab ───────────────────────────────────────────────────────────────
 
     private void renderLogTab(GuiGraphics g) {
         if (!ClientGuildCache.isInGuild()) {
-            g.drawCenteredString(font, "You must be in a guild to view the log.", px + W / 2, py + 100, C_DIM);
+            g.drawCenteredString(font, "You must be in a Guild to view the log.", px + W / 2, py + 100, C_DIM);
             return;
         }
         List<S2CGuildSyncPacket.LogEntry> log = ClientGuildCache.logEntries;
@@ -446,7 +446,7 @@ public class GuildScreen extends Screen {
 
     private void renderWikiTab(GuiGraphics g, int mx, int my) {
         if (!ClientGuildCache.isInGuild()) {
-            g.drawCenteredString(font, "You must be in a guild to view the wiki.", px + W / 2, py + 100, C_DIM);
+            g.drawCenteredString(font, "You must be in a Guild to view the wiki.", px + W / 2, py + 100, C_DIM);
             return;
         }
 
@@ -481,7 +481,7 @@ public class GuildScreen extends Screen {
         RenderSystem.disableScissor();
 
         if (filtered.isEmpty())
-            g.drawString(font, pages.isEmpty() ? "No pages yet." : "No results.", lx + 4, listTop + 3, C_FAINT,
+            g.drawString(font, pages.isEmpty() ? "No Pages yet." : "No results.", lx + 4, listTop + 3, C_FAINT,
                     false);
 
         if (officer)
@@ -536,7 +536,7 @@ public class GuildScreen extends Screen {
                 selectedWikiTitle = null;
             }
         } else {
-            g.drawCenteredString(font, "Select a page.", rx + rw / 2, py + CONTENT_TOP + 40, C_FAINT);
+            g.drawCenteredString(font, "Select a Page.", rx + rw / 2, py + CONTENT_TOP + 40, C_FAINT);
         }
     }
 
