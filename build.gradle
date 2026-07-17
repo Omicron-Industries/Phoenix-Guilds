@@ -29,6 +29,13 @@ repositories {
         name 'FirstDarkDev'
         url "https://maven.firstdark.dev/snapshots/"
     }
+    maven {
+        name = 'GTCEu Maven'
+        url = 'https://maven.gtceu.com'
+        content {
+            includeGroup 'com.gregtechceu.gtceu'
+        }
+    }
     maven { // Registrate
         url = "https://maven.tterrag.com/"
         content {
@@ -58,6 +65,14 @@ repositories {
 	}
     maven {
         url = "https://thedarkcolour.github.io/KotlinForForge/"
+    }
+    flatDir {
+        // GregTech-Modern (gtceu) integration — compiled against a real jar copied in here from
+        // the local GregTech-Modern checkout rather than a guessed remote maven coordinate, since
+        // no maven URL for this dependency was verified. Replace with a real maven entry if/when
+        // one is confirmed; a flatDir jar still needs manually bumping in lockstep with
+        // gtceu_version in gradle.properties.
+        dir 'libs'
     }
 
 }
@@ -128,12 +143,22 @@ jar {
 apply from: "$rootDir/gradle/scripts/spotless.gradle"
 
 dependencies {
-    compileOnly("org.jetbrains:annotations:26.0.1")
 
+    compileOnly("org.jetbrains:annotations:26.0.1")
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
     modImplementation("dev.toma.configuration:configuration-forge-${minecraft_version}:${configuration_version}")
+
+    modCompileOnly("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtceu_version}:slim") { transitive = false }
+    modCompileOnly("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
+    modCompileOnly("com.tterrag.registrate:Registrate:${registrate_version}")
+
+
+    modRuntimeOnly("com.gregtechceu.gtceu:gtceu-${minecraft_version}:${gtceu_version}:slim") { transitive = false }
+    modRuntimeOnly("com.lowdragmc.ldlib:ldlib-forge-${minecraft_version}:${ldlib_version}") { transitive = false }
+    modRuntimeOnly("com.tterrag.registrate:Registrate:${registrate_version}")
+
 
     // lombok
     compileOnly 'org.projectlombok:lombok:1.18.24'

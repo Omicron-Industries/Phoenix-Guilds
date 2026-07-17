@@ -1,12 +1,10 @@
 package net.phoenixvine.guilds.network;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
-import net.phoenixvine.guilds.client.ClientGuildCache;
-import net.phoenixvine.guilds.client.GuildScreen;
+import net.phoenixvine.guilds.data.Guild;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +17,7 @@ public class S2CGuildSyncPacket {
 
     public record MemberEntry(UUID uuid, String name, boolean isOnline, String rank) {}
 
-    public record GuildSummary(String name, int memberCount, int onlineCount, String description) {}
+    public record GuildSummary(UUID id, String name, int memberCount, int onlineCount, String description) {}
 
     public record AllyEntry(String name, int memberCount, int onlineCount) {}
 
@@ -37,7 +35,11 @@ public class S2CGuildSyncPacket {
     private final String description;
     private final boolean friendlyFire;
     private final boolean homeSet;
-    private final String flagData;
+    private final String flagIconId;
+    private final String flagPixelData;
+    private final boolean flagUseDrawing;
+    private final int flagWidth;
+    private final int flagHeight;
     private final List<MemberEntry> members;
     private final List<AllyEntry> allies;
     private final List<PendingEntry> pendingOutgoing;
@@ -49,17 +51,22 @@ public class S2CGuildSyncPacket {
     // ── Server-side constructor ───────────────────────────────────────────────
 
     public S2CGuildSyncPacket(String guildName, UUID ownerUUID, String motd, String description,
-                              boolean friendlyFire, boolean homeSet, String flagData,
-                              List<MemberEntry> members, List<AllyEntry> allies,
-                              List<PendingEntry> pendingOutgoing, List<PendingEntry> pendingIncoming,
-                              List<LogEntry> logEntries, List<WikiPage> wikiPages, List<GuildSummary> allGuilds) {
+                              boolean friendlyFire, boolean homeSet, String flagIconId, String flagPixelData,
+                              boolean flagUseDrawing, int flagWidth, int flagHeight, List<MemberEntry> members,
+                              List<AllyEntry> allies, List<PendingEntry> pendingOutgoing,
+                              List<PendingEntry> pendingIncoming, List<LogEntry> logEntries,
+                              List<WikiPage> wikiPages, List<GuildSummary> allGuilds) {
         this.guildName = guildName;
         this.ownerUUID = ownerUUID;
         this.motd = motd;
         this.description = description;
         this.friendlyFire = friendlyFire;
         this.homeSet = homeSet;
-        this.flagData = flagData;
+        this.flagIconId = flagIconId;
+        this.flagPixelData = flagPixelData;
+        this.flagUseDrawing = flagUseDrawing;
+        this.flagWidth = flagWidth;
+        this.flagHeight = flagHeight;
         this.members = members;
         this.allies = allies;
         this.pendingOutgoing = pendingOutgoing;
@@ -74,20 +81,28 @@ public class S2CGuildSyncPacket {
     public S2CGuildSyncPacket(FriendlyByteBuf buf) {
         boolean inGuild = buf.readBoolean();
         if (inGuild) {
-            this.guildName = buf.readUtf(64);
+            this.guildName = buf.readUtf(GuildNetworkLimits.NAME_MAX);
             this.ownerUUID = buf.readUUID();
-            this.motd = buf.readUtf(128);
-            this.description = buf.readUtf(256);
+            this.motd = buf.readUtf(GuildNetworkLimits.MOTD_MAX);
+            this.description = buf.readUtf(GuildNetworkLimits.DESCRIPTION_MAX);
             this.friendlyFire = buf.readBoolean();
             this.homeSet = buf.readBoolean();
-            this.flagData = buf.readUtf(128);
-            this.members = readList(buf,
-                    b -> new MemberEntry(b.readUUID(), b.readUtf(32), b.readBoolean(), b.readUtf(16)));
-            this.allies = readList(buf, b -> new AllyEntry(b.readUtf(64), b.readVarInt(), b.readVarInt()));
-            this.pendingOutgoing = readList(buf, b -> new PendingEntry(b.readUtf(64)));
-            this.pendingIncoming = readList(buf, b -> new PendingEntry(b.readUtf(64)));
-            this.logEntries = readList(buf, b -> new LogEntry(b.readLong(), b.readUtf(256)));
-            this.wikiPages = readList(buf, b -> new WikiPage(b.readUtf(64), b.readUtf(512)));
+            this.flagIconId = buf.readUtf(GuildNetworkLimits.ICON_ID_MAX);
+            this.flagPixelData = buf.readUtf(Guild.FLAG_PIXEL_DATA_LENGTH);
+            this.flagUseDrawing = buf.readBoolean();
+            this.flagWidth = buf.readVarInt();
+            this.flagHeight = buf.readVarInt();
+            this.members = readList(buf, b -> new MemberEntry(b.readUUID(),
+                    b.readUtf(GuildNetworkLimits.MEMBER_NAME_MAX), b.readBoolean(),
+                    b.readUtf(GuildNetworkLimits.RANK_MAX)));
+            this.allies = readList(buf, b -> new AllyEntry(b.readUtf(GuildNetworkLimits.NAME_MAX), b.readVarInt(),
+                    b.readVarInt()));
+            this.pendingOutgoing = readList(buf, b -> new PendingEntry(b.readUtf(GuildNetworkLimits.NAME_MAX)));
+            this.pendingIncoming = readList(buf, b -> new PendingEntry(b.readUtf(GuildNetworkLimits.NAME_MAX)));
+            this.logEntries = readList(buf,
+                    b -> new LogEntry(b.readLong(), b.readUtf(GuildNetworkLimits.LOG_MESSAGE_MAX)));
+            this.wikiPages = readList(buf, b -> new WikiPage(b.readUtf(GuildNetworkLimits.WIKI_TITLE_MAX),
+                    b.readUtf(GuildNetworkLimits.WIKI_CONTENT_MAX)));
         } else {
             this.guildName = null;
             this.ownerUUID = null;
@@ -95,7 +110,11 @@ public class S2CGuildSyncPacket {
             this.description = "";
             this.friendlyFire = false;
             this.homeSet = false;
-            this.flagData = "0".repeat(128);
+            this.flagIconId = "";
+            this.flagPixelData = "0".repeat(Guild.FLAG_PIXEL_DATA_LENGTH);
+            this.flagUseDrawing = false;
+            this.flagWidth = 16;
+            this.flagHeight = 16;
             this.members = List.of();
             this.allies = List.of();
             this.pendingOutgoing = List.of();
@@ -104,7 +123,8 @@ public class S2CGuildSyncPacket {
             this.wikiPages = List.of();
         }
         this.allGuilds = readList(buf,
-                b -> new GuildSummary(b.readUtf(64), b.readVarInt(), b.readVarInt(), b.readUtf(256)));
+                b -> new GuildSummary(b.readUUID(), b.readUtf(GuildNetworkLimits.NAME_MAX), b.readVarInt(),
+                        b.readVarInt(), b.readUtf(GuildNetworkLimits.DESCRIPTION_MAX)));
     }
 
     // ── Encode ────────────────────────────────────────────────────────────────
@@ -113,60 +133,130 @@ public class S2CGuildSyncPacket {
         boolean inGuild = guildName != null;
         buf.writeBoolean(inGuild);
         if (inGuild) {
-            buf.writeUtf(guildName, 64);
+            buf.writeUtf(guildName, GuildNetworkLimits.NAME_MAX);
             buf.writeUUID(ownerUUID);
-            buf.writeUtf(motd, 128);
-            buf.writeUtf(description, 256);
+            buf.writeUtf(motd, GuildNetworkLimits.MOTD_MAX);
+            buf.writeUtf(description, GuildNetworkLimits.DESCRIPTION_MAX);
             buf.writeBoolean(friendlyFire);
             buf.writeBoolean(homeSet);
-            buf.writeUtf(flagData, 128);
+            buf.writeUtf(flagIconId, GuildNetworkLimits.ICON_ID_MAX);
+            buf.writeUtf(flagPixelData, Guild.FLAG_PIXEL_DATA_LENGTH);
+            buf.writeBoolean(flagUseDrawing);
+            buf.writeVarInt(flagWidth);
+            buf.writeVarInt(flagHeight);
             writeList(buf, members, (b, m) -> {
                 b.writeUUID(m.uuid());
-                b.writeUtf(m.name(), 32);
+                b.writeUtf(m.name(), GuildNetworkLimits.MEMBER_NAME_MAX);
                 b.writeBoolean(m.isOnline());
-                b.writeUtf(m.rank(), 16);
+                b.writeUtf(m.rank(), GuildNetworkLimits.RANK_MAX);
             });
             writeList(buf, allies, (b, a) -> {
-                b.writeUtf(a.name(), 64);
+                b.writeUtf(a.name(), GuildNetworkLimits.NAME_MAX);
                 b.writeVarInt(a.memberCount());
                 b.writeVarInt(a.onlineCount());
             });
-            writeList(buf, pendingOutgoing, (b, p) -> b.writeUtf(p.guildName(), 64));
-            writeList(buf, pendingIncoming, (b, p) -> b.writeUtf(p.guildName(), 64));
+            writeList(buf, pendingOutgoing, (b, p) -> b.writeUtf(p.guildName(), GuildNetworkLimits.NAME_MAX));
+            writeList(buf, pendingIncoming, (b, p) -> b.writeUtf(p.guildName(), GuildNetworkLimits.NAME_MAX));
             writeList(buf, logEntries, (b, l) -> {
                 b.writeLong(l.timestamp());
-                b.writeUtf(l.message(), 256);
+                b.writeUtf(l.message(), GuildNetworkLimits.LOG_MESSAGE_MAX);
             });
             writeList(buf, wikiPages, (b, w) -> {
-                b.writeUtf(w.title(), 64);
-                b.writeUtf(w.content(), 512);
+                b.writeUtf(w.title(), GuildNetworkLimits.WIKI_TITLE_MAX);
+                b.writeUtf(w.content(), GuildNetworkLimits.WIKI_CONTENT_MAX);
             });
         }
         writeList(buf, allGuilds, (b, g) -> {
-            b.writeUtf(g.name(), 64);
+            b.writeUUID(g.id());
+            b.writeUtf(g.name(), GuildNetworkLimits.NAME_MAX);
             b.writeVarInt(g.memberCount());
             b.writeVarInt(g.onlineCount());
-            b.writeUtf(g.description(), 256);
+            b.writeUtf(g.description(), GuildNetworkLimits.DESCRIPTION_MAX);
         });
     }
 
     // ── Handle ────────────────────────────────────────────────────────────────
 
+    // ── Handle ────────────────────────────────────────────────────────────────
+
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> applyOnClient(this)));
+                () -> () -> net.phoenixvine.guilds.client.ClientGuildCache.handleSyncPacket(this)));
         ctx.get().setPacketHandled(true);
     }
 
-    private static void applyOnClient(S2CGuildSyncPacket pkt) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
-        ClientGuildCache.update(pkt.guildName, pkt.ownerUUID, pkt.motd, pkt.description,
-                pkt.friendlyFire, pkt.homeSet, pkt.flagData,
-                pkt.members, pkt.allies, pkt.pendingOutgoing, pkt.pendingIncoming,
-                pkt.logEntries, pkt.wikiPages, pkt.allGuilds);
-        if (mc.screen instanceof GuildScreen gs)
-            gs.onDataRefreshed();
+    // ── Getters for Client Update ─────────────────────────────────────────────
+
+    public String getGuildName() {
+        return guildName;
+    }
+
+    public UUID getOwnerUUID() {
+        return ownerUUID;
+    }
+
+    public String getMotd() {
+        return motd;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public boolean isFriendlyFire() {
+        return friendlyFire;
+    }
+
+    public boolean isHomeSet() {
+        return homeSet;
+    }
+
+    public String getFlagIconId() {
+        return flagIconId;
+    }
+
+    public String getFlagPixelData() {
+        return flagPixelData;
+    }
+
+    public boolean isFlagUseDrawing() {
+        return flagUseDrawing;
+    }
+
+    public int getFlagWidth() {
+        return flagWidth;
+    }
+
+    public int getFlagHeight() {
+        return flagHeight;
+    }
+
+    public List<MemberEntry> getMembers() {
+        return members;
+    }
+
+    public List<AllyEntry> getAllies() {
+        return allies;
+    }
+
+    public List<PendingEntry> getPendingOutgoing() {
+        return pendingOutgoing;
+    }
+
+    public List<PendingEntry> getPendingIncoming() {
+        return pendingIncoming;
+    }
+
+    public List<LogEntry> getLogEntries() {
+        return logEntries;
+    }
+
+    public List<WikiPage> getWikiPages() {
+        return wikiPages;
+    }
+
+    public List<GuildSummary> getAllGuilds() {
+        return allGuilds;
     }
 
     // ── IO helpers ────────────────────────────────────────────────────────────

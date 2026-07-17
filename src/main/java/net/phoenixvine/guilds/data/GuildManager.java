@@ -5,6 +5,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.phoenixvine.guilds.PhoenixGuilds;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -15,6 +16,11 @@ import java.util.UUID;
 public class GuildManager extends SavedData {
 
     private static final String SAVE_KEY = "phoenix_guilds";
+    // Bumped whenever a future change needs an actual migration step (not just a new field with
+    // its own tag.contains() guard — those don't need a version bump). No migration exists yet;
+    // this is purely the hook so the next breaking change has somewhere real to attach to instead
+    // of inventing one under time pressure.
+    private static final int DATA_VERSION = 1;
 
     private final Map<UUID, Guild> guilds = new LinkedHashMap<>();
     private final Map<UUID, UUID> memberIndex = new LinkedHashMap<>();
@@ -28,17 +34,29 @@ public class GuildManager extends SavedData {
 
     private static GuildManager load(CompoundTag tag) {
         GuildManager mgr = new GuildManager();
+        // Absent means "written before this field existed" — treated as version 0, the original
+        // unversioned format. if (version < N) { ... } migration steps go here as they're needed.
+        int version = tag.contains("dataVersion") ? tag.getInt("dataVersion") : 0;
+
         ListTag list = tag.getList("guilds", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
-            Guild g = Guild.deserialize(list.getCompound(i));
-            mgr.guilds.put(g.getId(), g);
-            for (UUID m : g.getMembers()) mgr.memberIndex.put(m, g.getId());
+            // One malformed compound (disk corruption, a future bug, hand-edited NBT) must not
+            // take down every other guild's data along with it — isolate each entry.
+            try {
+                Guild g = Guild.deserialize(list.getCompound(i));
+                mgr.guilds.put(g.getId(), g);
+                for (UUID m : g.getMembers()) mgr.memberIndex.put(m, g.getId());
+            } catch (Exception e) {
+                PhoenixGuilds.LOGGER.error("Skipping corrupt guild entry {} in save data: {}", i,
+                        list.getCompound(i), e);
+            }
         }
         return mgr;
     }
 
     @Override
     public CompoundTag save(CompoundTag tag) {
+        tag.putInt("dataVersion", DATA_VERSION);
         ListTag list = new ListTag();
         for (Guild g : guilds.values()) list.add(g.serialize());
         tag.put("guilds", list);
@@ -174,6 +192,15 @@ public class GuildManager extends SavedData {
         Guild g = guilds.get(guildId);
         if (g == null || !g.hasRank(playerUUID, GuildRank.OFFICER)) return false;
         g.setDescription(desc);
+        setDirty();
+        return true;
+    }
+
+    public boolean setFlag(UUID guildId, UUID playerUUID, boolean useDrawing, String iconId, String pixelData,
+                           int width, int height) {
+        Guild g = guilds.get(guildId);
+        if (g == null || !g.hasRank(playerUUID, GuildRank.OFFICER)) return false;
+        g.setFlag(useDrawing, iconId, pixelData, width, height);
         setDirty();
         return true;
     }

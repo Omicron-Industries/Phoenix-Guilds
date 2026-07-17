@@ -1,8 +1,10 @@
 package net.phoenixvine.guilds.client;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -107,8 +109,29 @@ public class GuildScreen extends Screen {
                 ClientGuildCache.isOwner() ? halfW : W - 20, 18,
                 () -> act(C2SGuildActionPacket.Action.LEAVE, "")));
         if (ClientGuildCache.isOwner())
-            addRenderableWidget(btn("Delete Guild", px + 14 + halfW, btnY, halfW, 18,
-                    () -> act(C2SGuildActionPacket.Action.DISBAND, "")));
+            addRenderableWidget(btn("Delete Guild", px + 14 + halfW, btnY, halfW, 18, this::confirmDisband));
+    }
+
+    /**
+     * {@code GuildManager.disbandGuild} is an unconditional, irreversible delete — every member,
+     * the wiki, the log, the flag, everything — with no soft-delete/undo path (verified against
+     * its own implementation). The button used to send {@code Action.DISBAND} straight from a
+     * single click with zero confirmation. Mirrors the exact {@code ConfirmScreen} pattern
+     * Phoenix-Archive's own delete prompts already use elsewhere in this mod family (same 3
+     * call sites, same shape: confirm callback restores this screen either way, only fires the
+     * real action when {@code confirmed} is true) — no reusable confirm-dialog component exists
+     * yet in this codebase, so this reuses vanilla's {@code ConfirmScreen} directly, same as
+     * those did, rather than inventing a new one.
+     */
+    private void confirmDisband() {
+        String name = ClientGuildCache.guildName != null ? ClientGuildCache.guildName : "this guild";
+        Minecraft.getInstance().setScreen(new ConfirmScreen(confirmed -> {
+            if (confirmed) act(C2SGuildActionPacket.Action.DISBAND, "");
+            Minecraft.getInstance().setScreen(this);
+        }, Component.literal("§4Delete Guild"),
+                Component.literal("Permanently delete '" + name + "'? This cannot be undone — every member, " +
+                        "the wiki, the log, and the flag will be gone."),
+                Component.literal("Delete Guild"), Component.literal("Cancel")));
     }
 
     private void buildAlliesWidgets() {
@@ -208,12 +231,17 @@ public class GuildScreen extends Screen {
             y += 12;
         }
 
-        // Mini flag (16×8 @ 2px per cell = 32×16)
-        int flagCellSize = 2;
-        int flagW = 16 * flagCellSize;
-        int flagH = 8 * flagCellSize;
+        // Mini flag preview, fixed 32×16 footprint regardless of the guild's actual configured
+        // flagWidth/flagHeight — the icon/drawing itself just scales to fit, same as any other icon draw.
+        int flagW = 32;
+        int flagH = 16;
         int flagX = px + W - 10 - flagW;
-        GuildFlagEditorScreen.renderFlag(g, ClientGuildCache.flagData, flagX, y, flagCellSize);
+        if (ClientGuildCache.flagUseDrawing) {
+            GuildFlagPixelArt.render2D(g, ClientGuildCache.flagPixelData, ClientGuildCache.flagWidth,
+                    ClientGuildCache.flagHeight, flagX, y, flagW, flagH);
+        } else {
+            GuildFlagIconManager.renderFlag(g, ClientGuildCache.flagIconId, flagX, y, flagW, flagH);
+        }
         g.fill(flagX - 1, y - 1, flagX + flagW + 1, y, C_BORDER2);
         g.fill(flagX - 1, y + flagH, flagX + flagW + 1, y + flagH + 1, C_BORDER2);
         g.fill(flagX - 1, y - 1, flagX, y + flagH + 1, C_BORDER2);

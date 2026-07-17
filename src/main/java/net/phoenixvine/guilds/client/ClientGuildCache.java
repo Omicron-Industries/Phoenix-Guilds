@@ -1,6 +1,7 @@
 package net.phoenixvine.guilds.client;
 
 import net.minecraft.client.Minecraft;
+import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.network.S2CGuildSyncPacket;
 
 import java.util.List;
@@ -17,7 +18,11 @@ public final class ClientGuildCache {
     public static String description = "";
     public static boolean friendlyFire = false;
     public static boolean homeSet = false;
-    public static String flagData = "0".repeat(128);
+    public static String flagIconId = "";
+    public static String flagPixelData = "0".repeat(Guild.FLAG_PIXEL_DATA_LENGTH);
+    public static boolean flagUseDrawing = false;
+    public static int flagWidth = 16;
+    public static int flagHeight = 16;
 
     public static List<S2CGuildSyncPacket.MemberEntry> members = List.of();
     public static List<S2CGuildSyncPacket.AllyEntry> allies = List.of();
@@ -27,9 +32,25 @@ public final class ClientGuildCache {
     public static List<S2CGuildSyncPacket.WikiPage> wikiPages = List.of();
     public static List<S2CGuildSyncPacket.GuildSummary> allGuilds = List.of();
 
+    public static void handleSyncPacket(S2CGuildSyncPacket pkt) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        update(
+                pkt.getGuildName(), pkt.getOwnerUUID(), pkt.getMotd(), pkt.getDescription(),
+                pkt.isFriendlyFire(), pkt.isHomeSet(), pkt.getFlagIconId(), pkt.getFlagPixelData(),
+                pkt.isFlagUseDrawing(), pkt.getFlagWidth(), pkt.getFlagHeight(), pkt.getMembers(),
+                pkt.getAllies(), pkt.getPendingOutgoing(), pkt.getPendingIncoming(),
+                pkt.getLogEntries(), pkt.getWikiPages(), pkt.getAllGuilds());
+
+        if (mc.screen instanceof GuildScreen gs) {
+            gs.onDataRefreshed();
+        }
+    }
+
     public static void update(String name, UUID owner, String motdVal, String descVal,
-                              boolean ff, boolean hs, String flag,
-                              List<S2CGuildSyncPacket.MemberEntry> memberList,
+                              boolean ff, boolean hs, String flagIcon, String flagPixels, boolean flagDrawing,
+                              int flagW, int flagH, List<S2CGuildSyncPacket.MemberEntry> memberList,
                               List<S2CGuildSyncPacket.AllyEntry> allyList,
                               List<S2CGuildSyncPacket.PendingEntry> outgoing,
                               List<S2CGuildSyncPacket.PendingEntry> incoming,
@@ -42,7 +63,11 @@ public final class ClientGuildCache {
         description = descVal;
         friendlyFire = ff;
         homeSet = hs;
-        flagData = flag;
+        flagIconId = flagIcon;
+        flagPixelData = flagPixels;
+        flagUseDrawing = flagDrawing;
+        flagWidth = flagW;
+        flagHeight = flagH;
         members = memberList;
         allies = allyList;
         pendingOutgoing = outgoing;
@@ -82,7 +107,11 @@ public final class ClientGuildCache {
         description = "";
         friendlyFire = false;
         homeSet = false;
-        flagData = "0".repeat(128);
+        flagIconId = "";
+        flagPixelData = "0".repeat(128);
+        flagUseDrawing = false;
+        flagWidth = 16;
+        flagHeight = 16;
         members = List.of();
         allies = List.of();
         pendingOutgoing = List.of();

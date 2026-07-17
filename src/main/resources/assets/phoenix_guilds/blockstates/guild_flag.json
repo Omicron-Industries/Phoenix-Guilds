@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "half=lower": { "model": "phoenix_guilds:block/guild_flag" },
+    "half=upper": { "model": "phoenix_guilds:block/guild_flag" }
+  }
+}

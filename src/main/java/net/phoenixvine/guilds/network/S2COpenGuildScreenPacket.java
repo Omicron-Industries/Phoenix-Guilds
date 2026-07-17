@@ -1,11 +1,10 @@
 package net.phoenixvine.guilds.network;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
-import net.phoenixvine.guilds.client.GuildScreen;
+import net.phoenixvine.guilds.client.ClientPacketHandler;
 
 import java.util.function.Supplier;
 
@@ -19,7 +18,7 @@ public class S2COpenGuildScreenPacket {
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> Minecraft.getInstance().setScreen(new GuildScreen())));
+                () -> () -> ClientPacketHandler.openGuildScreen()));
         ctx.get().setPacketHandled(true);
     }
 }

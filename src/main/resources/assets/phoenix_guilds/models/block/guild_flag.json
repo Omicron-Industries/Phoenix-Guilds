@@ -1,0 +1,21 @@
+{
+	"credit": "Simplified post — see GuildFlagBlock's class doc for why the old hand-modeled pole+plates+cap mesh (and its baked-in flagface placeholder) was replaced with this",
+	"texture_size": [2, 32],
+	"textures": {
+		"2": "phoenix_guilds:block/guilds_flag"
+	},
+	"elements": [
+		{
+			"from": [7, 0, 7],
+			"to": [9, 32, 9],
+			"faces": {
+				"north": {"uv": [0, 0, 2, 32], "texture": "#2"},
+				"east": {"uv": [0, 0, 2, 32], "texture": "#2"},
+				"south": {"uv": [0, 0, 2, 32], "texture": "#2"},
+				"west": {"uv": [0, 0, 2, 32], "texture": "#2"},
+				"up": {"uv": [0, 0, 2, 2], "texture": "#2"},
+				"down": {"uv": [0, 0, 2, 2], "texture": "#2"}
+			}
+		}
+	]
+}

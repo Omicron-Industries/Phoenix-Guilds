@@ -36,8 +36,52 @@ public class Guild {
     private String motd = "";
     private String description = "";
     private boolean friendlyFire = false; // false = PvP between members disabled
-    // 16×8 pixel flag, one hex digit per pixel (0-F palette index), 128 chars total
-    private String flagData = "0".repeat(128);
+    // The guild's flag/logo — either an arbitrary item or block's own icon ("item:<registry id>"
+    // or "block:<registry id>", empty = unset), or a hand-painted pixel grid, chosen via
+    // flagUseDrawing. Each drawn pixel is stored as 6 lowercase hex chars (RRGGBB, always opaque)
+    // rather than an index into a fixed palette — full per-pixel RGB freedom, not a 16-color cap.
+    private String flagIconId = "";
+    private String flagPixelData = "ffffff".repeat(MAX_FLAG_SIZE * MAX_FLAG_SIZE);
+    private boolean flagUseDrawing = false;
+    public static final int MIN_FLAG_SIZE = 8;
+    public static final int MAX_FLAG_SIZE = 64;
+    public static final int DEFAULT_FLAG_SIZE = 16;
+    // The drawing grid is stored at a fixed MAX_FLAG_SIZE x MAX_FLAG_SIZE stride regardless of the
+    // guild's current flagWidth/flagHeight, so shrinking/growing the resolution never scrambles
+    // already-painted pixels — only how many of the stored cells are shown/editable changes.
+    public static final int FLAG_PIXEL_DATA_LENGTH = MAX_FLAG_SIZE * MAX_FLAG_SIZE * 6;
+    // The original flag format (before full-RGB painting existed) stored one hex digit per pixel,
+    // indexing into this exact 16-color palette — kept only so old saved flags can be migrated
+    // forward instead of going blank. Never used for anything else; the live editor now stores
+    // real RGB.
+    private static final int[] LEGACY_PALETTE = {
+            0xFFFFFF, 0x9D9D97, 0x474F52, 0x1D1D21,
+            0x835432, 0xB02E26, 0xF9801D, 0xFED83D,
+            0x80C71F, 0x5E7C16, 0x169C9C, 0x3AB3DA,
+            0x3C44AA, 0x8932B8, 0xC74EBD, 0xF38BAA,
+    };
+
+    /**
+     * Old saves store {@code MAX_FLAG_SIZE * MAX_FLAG_SIZE} single hex digits (one per pixel,
+     * indexed into {@link #LEGACY_PALETTE}); current saves store 6 hex chars (RRGGBB) per pixel.
+     * Expands the former into the latter so pre-existing painted flags survive the format change
+     * instead of resetting to blank. Anything that's neither exact length is left as-is (caller
+     * falls back to the default-white string via the normal "unrecognized data" path).
+     */
+    private static String migratePixelDataIfLegacy(String data) {
+        if (data == null || data.length() != MAX_FLAG_SIZE * MAX_FLAG_SIZE) return data;
+        StringBuilder sb = new StringBuilder(FLAG_PIXEL_DATA_LENGTH);
+        for (int i = 0; i < data.length(); i++) {
+            char c = data.charAt(i);
+            int idx = Character.digit(c, 16);
+            int rgb = LEGACY_PALETTE[idx < 0 || idx >= LEGACY_PALETTE.length ? 0 : idx];
+            sb.append(String.format("%06x", rgb));
+        }
+        return sb.toString();
+    }
+
+    private int flagWidth = DEFAULT_FLAG_SIZE;
+    private int flagHeight = DEFAULT_FLAG_SIZE;
     private double homeX, homeY, homeZ;
     private float homeYaw, homePitch;
     private ResourceLocation homeDimension = null;
@@ -119,12 +163,38 @@ public class Guild {
         this.friendlyFire = ff;
     }
 
-    public String getFlagData() {
-        return flagData;
+    public String getFlagIconId() {
+        return flagIconId;
     }
 
-    public void setFlagData(String data) {
-        if (data != null && data.length() == 128) this.flagData = data.toLowerCase();
+    public String getFlagPixelData() {
+        return flagPixelData;
+    }
+
+    public boolean isFlagUseDrawing() {
+        return flagUseDrawing;
+    }
+
+    public int getFlagWidth() {
+        return flagWidth;
+    }
+
+    public int getFlagHeight() {
+        return flagHeight;
+    }
+
+    /**
+     * {@code iconId}/{@code pixelData} may be blank/null (leaves that representation unchanged —
+     * only {@code useDrawing} decides which one is actually shown); width/height are clamped, not
+     * rejected, so a stray out-of-range value from an old client can't get stuck.
+     */
+    public void setFlag(boolean useDrawing, String iconId, String pixelData, int width, int height) {
+        this.flagUseDrawing = useDrawing;
+        if (iconId != null) this.flagIconId = iconId;
+        if (pixelData != null && pixelData.length() == FLAG_PIXEL_DATA_LENGTH)
+            this.flagPixelData = pixelData.toLowerCase();
+        this.flagWidth = Math.max(MIN_FLAG_SIZE, Math.min(MAX_FLAG_SIZE, width));
+        this.flagHeight = Math.max(MIN_FLAG_SIZE, Math.min(MAX_FLAG_SIZE, height));
     }
 
     public boolean isHomeSet() {
@@ -261,7 +331,11 @@ public class Guild {
         tag.putString("motd", motd);
         tag.putString("description", description);
         tag.putBoolean("friendlyFire", friendlyFire);
-        tag.putString("flagData", flagData);
+        tag.putString("flagIconId", flagIconId);
+        tag.putString("flagPixelData", flagPixelData);
+        tag.putBoolean("flagUseDrawing", flagUseDrawing);
+        tag.putInt("flagWidth", flagWidth);
+        tag.putInt("flagHeight", flagHeight);
         if (homeDimension != null) {
             tag.putString("homeDim", homeDimension.toString());
             tag.putDouble("homeX", homeX);
@@ -318,7 +392,11 @@ public class Guild {
         g.motd = tag.getString("motd");
         g.description = tag.getString("description");
         g.friendlyFire = tag.getBoolean("friendlyFire");
-        if (tag.contains("flagData")) g.flagData = tag.getString("flagData");
+        if (tag.contains("flagIconId")) g.flagIconId = tag.getString("flagIconId");
+        if (tag.contains("flagPixelData")) g.flagPixelData = migratePixelDataIfLegacy(tag.getString("flagPixelData"));
+        if (tag.contains("flagUseDrawing")) g.flagUseDrawing = tag.getBoolean("flagUseDrawing");
+        if (tag.contains("flagWidth")) g.flagWidth = tag.getInt("flagWidth");
+        if (tag.contains("flagHeight")) g.flagHeight = tag.getInt("flagHeight");
 
         if (tag.contains("homeDim")) {
             g.homeDimension = new ResourceLocation(tag.getString("homeDim"));

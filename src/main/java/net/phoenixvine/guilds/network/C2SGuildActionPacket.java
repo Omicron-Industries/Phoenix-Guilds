@@ -31,8 +31,7 @@ public class C2SGuildActionPacket {
         GUILD_CHAT,
         ALLY_CHAT,
         WIKI_SET,
-        WIKI_DELETE,
-        SET_FLAG
+        WIKI_DELETE
     }
 
     private final Action action;
@@ -45,12 +44,12 @@ public class C2SGuildActionPacket {
 
     public C2SGuildActionPacket(FriendlyByteBuf buf) {
         this.action = buf.readEnum(Action.class);
-        this.arg = buf.readUtf(600);
+        this.arg = buf.readUtf(GuildNetworkLimits.ACTION_ARG_MAX);
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeEnum(action);
-        buf.writeUtf(arg, 600);
+        buf.writeUtf(arg, GuildNetworkLimits.ACTION_ARG_MAX);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
@@ -80,7 +79,6 @@ public class C2SGuildActionPacket {
                 case ALLY_CHAT -> GuildEvents.handleAllyChat(player, mgr, arg);
                 case WIKI_SET -> GuildEvents.handleWikiSet(player, mgr, arg);
                 case WIKI_DELETE -> GuildEvents.handleWikiDelete(player, mgr, arg);
-                case SET_FLAG -> GuildEvents.handleSetFlag(player, mgr, arg);
             }
         });
         ctx.get().setPacketHandled(true);

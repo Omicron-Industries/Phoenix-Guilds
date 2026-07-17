@@ -16,6 +16,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.registries.ForgeRegistries;
 import net.phoenixvine.guilds.PhoenixGuilds;
 import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.data.GuildManager;
@@ -271,7 +272,11 @@ public class GuildEvents {
         String description = "";
         boolean ff = false;
         boolean homeSet = false;
-        String flagData = "0".repeat(128);
+        String flagIconId = "";
+        String flagPixelData = "0".repeat(Guild.FLAG_PIXEL_DATA_LENGTH);
+        boolean flagUseDrawing = false;
+        int flagWidth = Guild.DEFAULT_FLAG_SIZE;
+        int flagHeight = Guild.DEFAULT_FLAG_SIZE;
         List<S2CGuildSyncPacket.MemberEntry> members = List.of();
         List<S2CGuildSyncPacket.AllyEntry> allies = List.of();
         List<S2CGuildSyncPacket.PendingEntry> pendingOutgoing = List.of();
@@ -287,7 +292,11 @@ public class GuildEvents {
             description = g.getDescription();
             ff = g.isFriendlyFire();
             homeSet = g.isHomeSet();
-            flagData = g.getFlagData();
+            flagIconId = g.getFlagIconId();
+            flagPixelData = g.getFlagPixelData();
+            flagUseDrawing = g.isFlagUseDrawing();
+            flagWidth = g.getFlagWidth();
+            flagHeight = g.getFlagHeight();
 
             List<S2CGuildSyncPacket.MemberEntry> ml = new ArrayList<>();
             for (UUID uuid : g.getMembers()) {
@@ -332,12 +341,13 @@ public class GuildEvents {
         for (Guild g : mgr.getAllGuilds()) {
             long online = g.getMembers().stream().filter(u -> player.getServer().getPlayerList().getPlayer(u) != null)
                     .count();
-            all.add(new S2CGuildSyncPacket.GuildSummary(g.getName(), g.getMembers().size(), (int) online,
+            all.add(new S2CGuildSyncPacket.GuildSummary(g.getId(), g.getName(), g.getMembers().size(), (int) online,
                     g.getDescription()));
         }
 
-        return new S2CGuildSyncPacket(guildName, ownerUUID, motd, description, ff, homeSet, flagData,
-                members, allies, pendingOutgoing, pendingIncoming, logEntries, wikiPageList, all);
+        return new S2CGuildSyncPacket(guildName, ownerUUID, motd, description, ff, homeSet, flagIconId,
+                flagPixelData, flagUseDrawing, flagWidth, flagHeight, members, allies, pendingOutgoing,
+                pendingIncoming, logEntries, wikiPageList, all);
     }
 
     public static void syncToPlayer(ServerPlayer player, GuildManager mgr) {
@@ -851,26 +861,61 @@ public class GuildEvents {
         }
     }
 
-    public static void handleSetFlag(ServerPlayer player, GuildManager mgr, String flagData) {
+    /**
+     * {@code iconId} is blank (clears the flag) or {@code "item:<registry id>"}/{@code
+     * "block:<registry id>"} — validated against the real registries here, not just trusted from
+     * the client packet, since a malformed/stale id would otherwise resolve to nothing at render
+     * time. {@code pixelData}, when {@code useDrawing} is true, must be exactly {@link
+     * Guild#FLAG_PIXEL_DATA_LENGTH} hex digits (a fixed-stride grid covering the max flag
+     * resolution; only the currently-configured width/height's worth of it is actually shown).
+     * Width/height are clamped
+     * (not rejected) by {@link Guild#setFlag}, so an out-of-range value from a mismatched client
+     * build can't get permanently stuck. Only the representation actually in use ({@code
+     * useDrawing}) is validated — a stale/default value in the other one is harmless since it's
+     * never read while that mode is inactive.
+     */
+    public static void handleSetFlag(ServerPlayer player, GuildManager mgr, boolean useDrawing, String iconId,
+                                     String pixelData, int width, int height) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
             send(player, "§cYou are not in a Guild.");
             return;
         }
         Guild g = opt.get();
-        if (!g.hasRank(player.getUUID(), GuildRank.OFFICER)) {
+        if (useDrawing) {
+            if (pixelData == null || pixelData.length() != Guild.FLAG_PIXEL_DATA_LENGTH ||
+                    !pixelData.matches("[0-9a-f]+")) {
+                send(player, "§cInvalid flag drawing data.");
+                return;
+            }
+        } else if (!isValidFlagIcon(iconId)) {
+            send(player, "§cThat item or block doesn't exist.");
+            return;
+        }
+        if (!mgr.setFlag(g.getId(), player.getUUID(), useDrawing, iconId, pixelData, width, height)) {
             send(player, "§cOfficers and above can edit the Guild flag.");
             return;
         }
-        if (flagData == null || flagData.length() != 128 || !flagData.matches("[0-9a-f]+")) {
-            send(player, "§cInvalid flag data.");
-            return;
-        }
-        g.setFlagData(flagData);
-        mgr.setDirty();
         g.addLog(player.getName().getString() + " updated the Guild flag.");
         send(player, "§aGuild flag updated.");
         syncToGuild(g, player.getServer(), mgr);
+    }
+
+    private static boolean isValidFlagIcon(String iconId) {
+        if (iconId == null || iconId.isBlank()) return true;
+        try {
+            if (iconId.startsWith("item:")) {
+                ResourceLocation id = new ResourceLocation(iconId.substring("item:".length()));
+                return ForgeRegistries.ITEMS.containsKey(id);
+            }
+            if (iconId.startsWith("block:")) {
+                ResourceLocation id = new ResourceLocation(iconId.substring("block:".length()));
+                return ForgeRegistries.BLOCKS.containsKey(id);
+            }
+        } catch (Exception ignored) {
+            return false;
+        }
+        return false;
     }
 
     public static void handleWikiDelete(ServerPlayer player, GuildManager mgr, String title) {
