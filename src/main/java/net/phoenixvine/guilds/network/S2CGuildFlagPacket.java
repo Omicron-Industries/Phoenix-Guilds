@@ -5,10 +5,6 @@ import net.phoenixvine.guilds.data.Guild;
 
 import java.util.UUID;
 
-/**
- * Server's targeted reply to {@link C2SRequestGuildFlagPacket} — one guild's current flag,
- * sent only to the player who asked, never broadcast.
- */
 public class S2CGuildFlagPacket {
 
     private final UUID guildId;
@@ -46,7 +42,6 @@ public class S2CGuildFlagPacket {
         buf.writeVarInt(flagHeight);
     }
 
-    // Getters so the network handler can safely read the data
     public UUID getGuildId() {
         return guildId;
     }

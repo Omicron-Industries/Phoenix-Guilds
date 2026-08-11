@@ -21,7 +21,10 @@ import net.phoenixvine.guilds.PhoenixGuilds;
 import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.data.GuildManager;
 import net.phoenixvine.guilds.data.GuildRank;
+import net.phoenixvine.guilds.integration.gtceu.GTCEuVirtualRegistrySync;
+import net.phoenixvine.guilds.integration.gtceu.GuildsGTCEuIntegration;
 import net.phoenixvine.guilds.network.GuildNetwork;
+import net.phoenixvine.guilds.network.S2CGuildFlagPacket;
 import net.phoenixvine.guilds.network.S2CGuildSyncPacket;
 import net.phoenixvine.guilds.network.S2COpenGuildScreenPacket;
 
@@ -37,17 +40,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Mod.EventBusSubscriber(modid = PhoenixGuilds.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class GuildEvents {
 
-    // Home cooldown: playerUUID → cooldown expiry epoch ms (not persisted, fine)
     private static final Map<UUID, Long> HOME_COOLDOWNS = new ConcurrentHashMap<>();
-    private static final long HOME_COOLDOWN_MS = 5 * 60 * 1000L; // 5 minutes
-
-    // ── Forge events ──────────────────────────────────────────────────────────
+    private static final long HOME_COOLDOWN_MS = 5 * 60 * 1000L; 
 
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         GuildManager mgr = GuildManager.get(player.getServer().overworld());
-        // Show MOTD if set
+        
         mgr.getGuildFor(player.getUUID()).ifPresent(g -> {
             if (!g.getMotd().isBlank())
                 player.sendSystemMessage(Component.literal("§6[Guild MOTD] §f" + g.getMotd()));
@@ -68,20 +68,16 @@ public class GuildEvents {
         Optional<Guild> vGuild = mgr.getGuildFor(victim.getUUID());
         Optional<Guild> aGuild = mgr.getGuildFor(attacker.getUUID());
 
-        // Cancel if same guild and friendly fire is off
         if (vGuild.isPresent() && aGuild.isPresent() && vGuild.get().getId().equals(aGuild.get().getId()) &&
                 !vGuild.get().isFriendlyFire()) {
             event.setCanceled(true);
         }
     }
 
-    // ── Commands ──────────────────────────────────────────────────────────────
-
     @SubscribeEvent
     public static void onRegisterCommands(RegisterCommandsEvent event) {
         var d = event.getDispatcher();
 
-        // /guilds
         d.register(Commands.literal("guilds")
                 .executes(ctx -> openGui(ctx.getSource().getPlayerOrException()))
                 .then(Commands.literal("gui").executes(ctx -> openGui(ctx.getSource().getPlayerOrException())))
@@ -240,7 +236,6 @@ public class GuildEvents {
                                             return 1;
                                         })))));
 
-        // /gc — guild chat
         d.register(Commands.literal("gc")
                 .then(Commands.argument("message", StringArgumentType.greedyString())
                         .executes(ctx -> {
@@ -250,7 +245,6 @@ public class GuildEvents {
                             return 1;
                         })));
 
-        // /ac — ally chat
         d.register(Commands.literal("ac")
                 .then(Commands.argument("message", StringArgumentType.greedyString())
                         .executes(ctx -> {
@@ -260,8 +254,6 @@ public class GuildEvents {
                             return 1;
                         })));
     }
-
-    // ── Sync helpers ──────────────────────────────────────────────────────────
 
     public static S2CGuildSyncPacket buildPacketFor(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
@@ -366,7 +358,15 @@ public class GuildEvents {
             if (!mgr.isInGuild(p.getUUID())) syncToPlayer(p, mgr);
     }
 
-    // ── Member handlers (called by both commands and C2S packet) ──────────────
+    private static void migrateGTCEuOwnership(UUID from, UUID to) {
+        if (!GuildsGTCEuIntegration.isAvailable()) return;
+        try {
+            GTCEuVirtualRegistrySync.migrateToGuild(from, to);
+        } catch (Throwable t) {
+            PhoenixGuilds.LOGGER.error("GregTech-Modern is present but migrating virtual registry ownership" +
+                    " failed — any existing Ender Link Cover networks may need manual reconfiguring.", t);
+        }
+    }
 
     public static void handleCreate(ServerPlayer player, GuildManager mgr, String name) {
         if (name.isBlank()) {
@@ -383,6 +383,7 @@ public class GuildEvents {
         }
         Guild g = mgr.createGuild(name, player.getUUID());
         send(player, "§aCreated Guild §f" + g.getName() + "§a.");
+        migrateGTCEuOwnership(player.getUUID(), g.getId());
         syncToPlayer(player, mgr);
         broadcastAllGuildList(player.getServer(), mgr);
     }
@@ -416,6 +417,7 @@ public class GuildEvents {
         send(player, "§aAdded §f" + targetName + " §ato §f" + g.getName() + "§a.");
         target.sendSystemMessage(Component.literal(
                 "§aYou were added to guild §f" + g.getName() + " §aby §f" + player.getName().getString() + "§a."));
+        migrateGTCEuOwnership(target.getUUID(), g.getId());
         syncToGuild(g, player.getServer(), mgr);
         broadcastAllGuildList(player.getServer(), mgr);
     }
@@ -487,8 +489,6 @@ public class GuildEvents {
         for (ServerPlayer m : allOnline) syncToPlayer(m, mgr);
         broadcastAllGuildList(player.getServer(), mgr);
     }
-
-    // ── Rank handlers ─────────────────────────────────────────────────────────
 
     public static void handlePromote(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
@@ -567,8 +567,6 @@ public class GuildEvents {
             send(player, "§cOnly the Guild owner can transfer ownership.");
         }
     }
-
-    // ── Settings handlers ─────────────────────────────────────────────────────
 
     public static void handleSetMotd(ServerPlayer player, GuildManager mgr, String text) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
@@ -651,7 +649,7 @@ public class GuildEvents {
             send(player, "§cGuild home has not been set yet.");
             return;
         }
-        // Cooldown check
+        
         long now = System.currentTimeMillis();
         Long expires = HOME_COOLDOWNS.get(player.getUUID());
         if (expires != null && now < expires) {
@@ -660,7 +658,7 @@ public class GuildEvents {
             return;
         }
         HOME_COOLDOWNS.put(player.getUUID(), now + HOME_COOLDOWN_MS);
-        // Teleport
+        
         ServerLevel targetLevel = player.getServer().getLevel(
                 ResourceKey.create(Registries.DIMENSION, g.getHomeDimension()));
         if (targetLevel == null) {
@@ -674,8 +672,6 @@ public class GuildEvents {
         }
         send(player, "§aTeleported to §f" + g.getName() + "§a's home.");
     }
-
-    // ── Chat handlers ─────────────────────────────────────────────────────────
 
     public static void handleGuildChat(ServerPlayer player, GuildManager mgr, String message) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
@@ -701,12 +697,12 @@ public class GuildEvents {
         Guild g = opt.get();
         String formatted = "§3[Ally] §b" + player.getName().getString() + " §7[" + g.getName() + "]§7: §f" + message;
         Component msg = Component.literal(formatted);
-        // Send to own guild
+        
         for (UUID uuid : g.getMembers()) {
             ServerPlayer m = player.getServer().getPlayerList().getPlayer(uuid);
             if (m != null) m.sendSystemMessage(msg);
         }
-        // Send to allied guilds
+        
         for (UUID allyId : g.getAllies()) {
             mgr.getGuildById(allyId).ifPresent(ally -> {
                 for (UUID uuid : ally.getMembers()) {
@@ -716,8 +712,6 @@ public class GuildEvents {
             });
         }
     }
-
-    // ── Alliance handlers ─────────────────────────────────────────────────────
 
     public static void handleAllyRequest(ServerPlayer player, GuildManager mgr, String targetName) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
@@ -833,8 +827,6 @@ public class GuildEvents {
         }
     }
 
-    // ── Wiki handlers ─────────────────────────────────────────────────────────
-
     public static void handleWikiSet(ServerPlayer player, GuildManager mgr, String arg) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
         if (opt.isEmpty()) {
@@ -861,27 +853,22 @@ public class GuildEvents {
         }
     }
 
-    /**
-     * {@code iconId} is blank (clears the flag) or {@code "item:<registry id>"}/{@code
-     * "block:<registry id>"} — validated against the real registries here, not just trusted from
-     * the client packet, since a malformed/stale id would otherwise resolve to nothing at render
-     * time. {@code pixelData}, when {@code useDrawing} is true, must be exactly {@link
-     * Guild#FLAG_PIXEL_DATA_LENGTH} hex digits (a fixed-stride grid covering the max flag
-     * resolution; only the currently-configured width/height's worth of it is actually shown).
-     * Width/height are clamped
-     * (not rejected) by {@link Guild#setFlag}, so an out-of-range value from a mismatched client
-     * build can't get permanently stuck. Only the representation actually in use ({@code
-     * useDrawing}) is validated — a stale/default value in the other one is harmless since it's
-     * never read while that mode is inactive.
-     */
-    public static void handleSetFlag(ServerPlayer player, GuildManager mgr, boolean useDrawing, String iconId,
-                                     String pixelData, int width, int height) {
-        Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
-        if (opt.isEmpty()) {
-            send(player, "§cYou are not in a Guild.");
+    public static void handleSetFlag(ServerPlayer player, GuildManager mgr, UUID targetGuildId, boolean useDrawing,
+                                     String iconId, String pixelData, int width, int height) {
+        Optional<Guild> currentGuild = mgr.getGuildFor(player.getUUID());
+        if (targetGuildId == null) {
+            if (currentGuild.isEmpty()) {
+                send(player, "§cYou are not in a Guild.");
+                return;
+            }
+        } else if (mgr.getGuildById(targetGuildId).isEmpty()) {
+            send(player, "§cThat flag's guild no longer exists.");
+            return;
+        } else if (currentGuild.isEmpty() || !currentGuild.get().getId().equals(targetGuildId)) {
+            send(player, "§cYou're not a member of this flag's guild.");
             return;
         }
-        Guild g = opt.get();
+        Guild g = targetGuildId == null ? currentGuild.get() : mgr.getGuildById(targetGuildId).get();
         if (useDrawing) {
             if (pixelData == null || pixelData.length() != Guild.FLAG_PIXEL_DATA_LENGTH ||
                     !pixelData.matches("[0-9a-f]+")) {
@@ -899,6 +886,14 @@ public class GuildEvents {
         g.addLog(player.getName().getString() + " updated the Guild flag.");
         send(player, "§aGuild flag updated.");
         syncToGuild(g, player.getServer(), mgr);
+        pushFlagToOnlineMembers(g, player.getServer());
+    }
+
+    private static void pushFlagToOnlineMembers(Guild g, MinecraftServer server) {
+        S2CGuildFlagPacket packet = new S2CGuildFlagPacket(g.getId(), g.getFlagIconId(), g.getFlagPixelData(),
+                g.isFlagUseDrawing(), g.getFlagWidth(), g.getFlagHeight());
+        for (ServerPlayer member : onlineMembers(g, server))
+            GuildNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> member), packet);
     }
 
     private static boolean isValidFlagIcon(String iconId) {
@@ -935,8 +930,6 @@ public class GuildEvents {
             case "not_found" -> send(player, "§cNo wiki page named '§f" + title + "§c'.");
         }
     }
-
-    // ── Text commands ─────────────────────────────────────────────────────────
 
     private static void cmdInfo(ServerPlayer player, GuildManager mgr) {
         Optional<Guild> opt = mgr.getGuildFor(player.getUUID());
@@ -995,8 +988,6 @@ public class GuildEvents {
         }
         player.sendSystemMessage(Component.literal(sb.toString()));
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static int openGui(ServerPlayer player) {
         GuildNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2COpenGuildScreenPacket());

@@ -1,4 +1,8 @@
 {
   "key.categories.phoenix_guilds": "Phoenix Guilds",
-  "key.phoenix_guilds.guilds": "Open Guilds Menu"
+  "key.phoenix_guilds.guilds": "Open Guilds Menu",
+  "block.phoenix_guilds.guild_flag": "Guild Flag",
+  "item.phoenix_guilds.guild_flag": "Guild Flag",
+  "item.phoenix_guilds.guild_flag.desc": "Displays your guild's flag. Right-click empty-handed to edit, or right-click holding an item/block to set it as the flag.",
+  "item.phoenix_guilds.guild_flag.credit": "Model by GearsMonger"
 }

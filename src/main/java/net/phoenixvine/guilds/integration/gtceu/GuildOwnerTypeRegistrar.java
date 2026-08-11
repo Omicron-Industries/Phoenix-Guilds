@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.common.machine.owner.RegisterOwnerTypeEvent;
 
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
-// Registers Guild Members as a choice for PlayerOwner so packdevs can use Phoenix Guilds for team-based systems.
 public final class GuildOwnerTypeRegistrar {
 
     private GuildOwnerTypeRegistrar() {}

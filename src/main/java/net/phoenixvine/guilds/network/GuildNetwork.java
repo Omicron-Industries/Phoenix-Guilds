@@ -24,7 +24,6 @@ public class GuildNetwork {
                 PROTOCOL::equals,
                 PROTOCOL::equals);
 
-        // ── SERVER-BOUND PACKETS ──
         CHANNEL.registerMessage(id++,
                 C2SGuildActionPacket.class,
                 C2SGuildActionPacket::encode,
@@ -46,9 +45,6 @@ public class GuildNetwork {
                 C2SRequestGuildFlagPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_SERVER));
 
-        // ── CLIENT-BOUND PACKETS ──
-
-        // 1. Guild Sync Packet
         CHANNEL.registerMessage(id++,
                 S2CGuildSyncPacket.class,
                 S2CGuildSyncPacket::encode,
@@ -61,7 +57,6 @@ public class GuildNetwork {
                 },
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 
-        // 2. Open Guild Screen Packet
         CHANNEL.registerMessage(id++,
                 S2COpenGuildScreenPacket.class,
                 S2COpenGuildScreenPacket::encode,
@@ -74,7 +69,6 @@ public class GuildNetwork {
                 },
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 
-        // 3. Guild Flag Packet
         CHANNEL.registerMessage(id++,
                 S2CGuildFlagPacket.class,
                 S2CGuildFlagPacket::encode,

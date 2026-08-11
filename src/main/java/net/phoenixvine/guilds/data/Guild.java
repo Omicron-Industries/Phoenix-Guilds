@@ -31,29 +31,21 @@ public class Guild {
     private final Set<UUID> allies = new LinkedHashSet<>();
     private final Set<UUID> pendingOutgoing = new LinkedHashSet<>();
     private final Deque<LogEntry> log = new ArrayDeque<>();
-    private final Map<String, String> wikiPages = new LinkedHashMap<>(); // title → content (ordered insertion)
+    private final Map<String, String> wikiPages = new LinkedHashMap<>(); 
 
     private String motd = "";
     private String description = "";
-    private boolean friendlyFire = false; // false = PvP between members disabled
-    // The guild's flag/logo — either an arbitrary item or block's own icon ("item:<registry id>"
-    // or "block:<registry id>", empty = unset), or a hand-painted pixel grid, chosen via
-    // flagUseDrawing. Each drawn pixel is stored as 6 lowercase hex chars (RRGGBB, always opaque)
-    // rather than an index into a fixed palette — full per-pixel RGB freedom, not a 16-color cap.
+    private boolean friendlyFire = false; 
+
     private String flagIconId = "";
     private String flagPixelData = "ffffff".repeat(MAX_FLAG_SIZE * MAX_FLAG_SIZE);
     private boolean flagUseDrawing = false;
     public static final int MIN_FLAG_SIZE = 8;
     public static final int MAX_FLAG_SIZE = 64;
     public static final int DEFAULT_FLAG_SIZE = 16;
-    // The drawing grid is stored at a fixed MAX_FLAG_SIZE x MAX_FLAG_SIZE stride regardless of the
-    // guild's current flagWidth/flagHeight, so shrinking/growing the resolution never scrambles
-    // already-painted pixels — only how many of the stored cells are shown/editable changes.
+
     public static final int FLAG_PIXEL_DATA_LENGTH = MAX_FLAG_SIZE * MAX_FLAG_SIZE * 6;
-    // The original flag format (before full-RGB painting existed) stored one hex digit per pixel,
-    // indexing into this exact 16-color palette — kept only so old saved flags can be migrated
-    // forward instead of going blank. Never used for anything else; the live editor now stores
-    // real RGB.
+
     private static final int[] LEGACY_PALETTE = {
             0xFFFFFF, 0x9D9D97, 0x474F52, 0x1D1D21,
             0x835432, 0xB02E26, 0xF9801D, 0xFED83D,
@@ -61,13 +53,6 @@ public class Guild {
             0x3C44AA, 0x8932B8, 0xC74EBD, 0xF38BAA,
     };
 
-    /**
-     * Old saves store {@code MAX_FLAG_SIZE * MAX_FLAG_SIZE} single hex digits (one per pixel,
-     * indexed into {@link #LEGACY_PALETTE}); current saves store 6 hex chars (RRGGBB) per pixel.
-     * Expands the former into the latter so pre-existing painted flags survive the format change
-     * instead of resetting to blank. Anything that's neither exact length is left as-is (caller
-     * falls back to the default-white string via the normal "unrecognized data" path).
-     */
     private static String migratePixelDataIfLegacy(String data) {
         if (data == null || data.length() != MAX_FLAG_SIZE * MAX_FLAG_SIZE) return data;
         StringBuilder sb = new StringBuilder(FLAG_PIXEL_DATA_LENGTH);
@@ -93,8 +78,6 @@ public class Guild {
         members.add(owner);
         memberRanks.put(owner, GuildRank.OWNER);
     }
-
-    // ── Basic accessors ───────────────────────────────────────────────────────
 
     public UUID getId() {
         return id;
@@ -183,11 +166,6 @@ public class Guild {
         return flagHeight;
     }
 
-    /**
-     * {@code iconId}/{@code pixelData} may be blank/null (leaves that representation unchanged —
-     * only {@code useDrawing} decides which one is actually shown); width/height are clamped, not
-     * rejected, so a stray out-of-range value from an old client can't get stuck.
-     */
     public void setFlag(boolean useDrawing, String iconId, String pixelData, int width, int height) {
         this.flagUseDrawing = useDrawing;
         if (iconId != null) this.flagIconId = iconId;
@@ -234,8 +212,6 @@ public class Guild {
         this.homePitch = pitch;
     }
 
-    // ── Rank helpers ──────────────────────────────────────────────────────────
-
     public GuildRank getRank(UUID uuid) {
         return memberRanks.getOrDefault(uuid, GuildRank.MEMBER);
     }
@@ -243,8 +219,6 @@ public class Guild {
     public boolean hasRank(UUID uuid, GuildRank required) {
         return getRank(uuid).isAtLeast(required);
     }
-
-    // ── Member mutations ──────────────────────────────────────────────────────
 
     public boolean isMember(UUID uuid) {
         return members.contains(uuid);
@@ -259,8 +233,6 @@ public class Guild {
         members.remove(uuid);
         memberRanks.remove(uuid);
     }
-
-    // ── Ally helpers ──────────────────────────────────────────────────────────
 
     public boolean isAlly(UUID guildId) {
         return allies.contains(guildId);
@@ -285,8 +257,6 @@ public class Guild {
     public void removePendingOutgoing(UUID guildId) {
         pendingOutgoing.remove(guildId);
     }
-
-    // ── Wiki ──────────────────────────────────────────────────────────────────
 
     public Map<String, String> getWikiPages() {
         return wikiPages;
@@ -314,14 +284,10 @@ public class Guild {
         return wikiPages.remove(title) != null;
     }
 
-    // ── Log ───────────────────────────────────────────────────────────────────
-
     public void addLog(String message) {
         log.addFirst(new LogEntry(System.currentTimeMillis(), message));
         while (log.size() > MAX_LOG) log.removeLast();
     }
-
-    // ── NBT ───────────────────────────────────────────────────────────────────
 
     public CompoundTag serialize() {
         CompoundTag tag = new CompoundTag();
@@ -348,7 +314,6 @@ public class Guild {
         tag.put("allies", uuidSet(allies));
         tag.put("pendingOutgoing", uuidSet(pendingOutgoing));
 
-        // Ranks
         ListTag rankList = new ListTag();
         for (Map.Entry<UUID, GuildRank> e : memberRanks.entrySet()) {
             CompoundTag r = new CompoundTag();
@@ -358,7 +323,6 @@ public class Guild {
         }
         tag.put("ranks", rankList);
 
-        // Wiki
         ListTag wikiList = new ListTag();
         for (Map.Entry<String, String> e : wikiPages.entrySet()) {
             CompoundTag w = new CompoundTag();
@@ -368,7 +332,6 @@ public class Guild {
         }
         tag.put("wiki", wikiList);
 
-        // Log
         ListTag logList = new ListTag();
         for (LogEntry entry : log) {
             CompoundTag l = new CompoundTag();
@@ -420,7 +383,7 @@ public class Guild {
                 g.memberRanks.put(uuid, rank);
             } catch (Exception ignored) {}
         }
-        // Ensure all members have a rank entry
+        
         for (UUID m : g.members) g.memberRanks.putIfAbsent(m, GuildRank.MEMBER);
         g.memberRanks.put(owner, GuildRank.OWNER);
 

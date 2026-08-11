@@ -13,8 +13,6 @@ import java.util.function.Supplier;
 
 public class S2CGuildSyncPacket {
 
-    // ── Records ───────────────────────────────────────────────────────────────
-
     public record MemberEntry(UUID uuid, String name, boolean isOnline, String rank) {}
 
     public record GuildSummary(UUID id, String name, int memberCount, int onlineCount, String description) {}
@@ -26,8 +24,6 @@ public class S2CGuildSyncPacket {
     public record LogEntry(long timestamp, String message) {}
 
     public record WikiPage(String title, String content) {}
-
-    // ── Fields ────────────────────────────────────────────────────────────────
 
     private final String guildName;
     private final UUID ownerUUID;
@@ -47,8 +43,6 @@ public class S2CGuildSyncPacket {
     private final List<LogEntry> logEntries;
     private final List<WikiPage> wikiPages;
     private final List<GuildSummary> allGuilds;
-
-    // ── Server-side constructor ───────────────────────────────────────────────
 
     public S2CGuildSyncPacket(String guildName, UUID ownerUUID, String motd, String description,
                               boolean friendlyFire, boolean homeSet, String flagIconId, String flagPixelData,
@@ -75,8 +69,6 @@ public class S2CGuildSyncPacket {
         this.wikiPages = wikiPages;
         this.allGuilds = allGuilds;
     }
-
-    // ── Decode ────────────────────────────────────────────────────────────────
 
     public S2CGuildSyncPacket(FriendlyByteBuf buf) {
         boolean inGuild = buf.readBoolean();
@@ -127,8 +119,6 @@ public class S2CGuildSyncPacket {
                         b.readVarInt(), b.readUtf(GuildNetworkLimits.DESCRIPTION_MAX)));
     }
 
-    // ── Encode ────────────────────────────────────────────────────────────────
-
     public void encode(FriendlyByteBuf buf) {
         boolean inGuild = guildName != null;
         buf.writeBoolean(inGuild);
@@ -175,17 +165,11 @@ public class S2CGuildSyncPacket {
         });
     }
 
-    // ── Handle ────────────────────────────────────────────────────────────────
-
-    // ── Handle ────────────────────────────────────────────────────────────────
-
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                 () -> () -> net.phoenixvine.guilds.client.ClientGuildCache.handleSyncPacket(this)));
         ctx.get().setPacketHandled(true);
     }
-
-    // ── Getters for Client Update ─────────────────────────────────────────────
 
     public String getGuildName() {
         return guildName;
@@ -258,8 +242,6 @@ public class S2CGuildSyncPacket {
     public List<GuildSummary> getAllGuilds() {
         return allGuilds;
     }
-
-    // ── IO helpers ────────────────────────────────────────────────────────────
 
     @FunctionalInterface
     private interface ElemReader<T> {

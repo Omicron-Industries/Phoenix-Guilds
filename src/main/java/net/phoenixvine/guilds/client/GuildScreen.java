@@ -27,7 +27,6 @@ import static net.phoenixvine.guilds.client.GuildThemeUtils.*;
 @OnlyIn(Dist.CLIENT)
 public class GuildScreen extends Screen {
 
-    // ── Layout ────────────────────────────────────────────────────────────────
     private static final int HEADER = 28;
     private static final int TAB_H = 20;
     private static final int ROW_H = 15;
@@ -36,7 +35,6 @@ public class GuildScreen extends Screen {
     private int WIKI_LIST_W;
     private int px, py;
 
-    // ── State ─────────────────────────────────────────────────────────────────
     private static final String[] TABS = { "Guild", "Allies", "Browse", "Log", "Wiki" };
     private int activeTab = 0;
     private int scrollOff = 0;
@@ -52,8 +50,15 @@ public class GuildScreen extends Screen {
     private EditBox secondaryBox;
     private EditBox wikiSearchBox;
 
-    public GuildScreen() {
+    private final Screen parent;
+
+    public GuildScreen(Screen parent) {
         super(Component.literal("Guilds"));
+        this.parent = parent;
+    }
+
+    public GuildScreen() {
+        this(null);
     }
 
     @Override
@@ -70,8 +75,6 @@ public class GuildScreen extends Screen {
     public void onDataRefreshed() {
         buildWidgets();
     }
-
-    // ── Widget construction ───────────────────────────────────────────────────
 
     private void buildWidgets() {
         clearWidgets();
@@ -112,17 +115,6 @@ public class GuildScreen extends Screen {
             addRenderableWidget(btn("Delete Guild", px + 14 + halfW, btnY, halfW, 18, this::confirmDisband));
     }
 
-    /**
-     * {@code GuildManager.disbandGuild} is an unconditional, irreversible delete — every member,
-     * the wiki, the log, the flag, everything — with no soft-delete/undo path (verified against
-     * its own implementation). The button used to send {@code Action.DISBAND} straight from a
-     * single click with zero confirmation. Mirrors the exact {@code ConfirmScreen} pattern
-     * Phoenix-Archive's own delete prompts already use elsewhere in this mod family (same 3
-     * call sites, same shape: confirm callback restores this screen either way, only fires the
-     * real action when {@code confirmed} is true) — no reusable confirm-dialog component exists
-     * yet in this codebase, so this reuses vanilla's {@code ConfirmScreen} directly, same as
-     * those did, rather than inventing a new one.
-     */
     private void confirmDisband() {
         String name = ClientGuildCache.guildName != null ? ClientGuildCache.guildName : "this guild";
         Minecraft.getInstance().setScreen(new ConfirmScreen(confirmed -> {
@@ -162,8 +154,6 @@ public class GuildScreen extends Screen {
         addRenderableWidget(wikiSearchBox);
     }
 
-    // ── Render ────────────────────────────────────────────────────────────────
-
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
         g.fill(0, 0, width, height, C_BG);
@@ -196,8 +186,9 @@ public class GuildScreen extends Screen {
         String title = ClientGuildCache.isInGuild() ? "  " + ClientGuildCache.guildName : "  GUILDS";
         g.drawCenteredString(font, title, px + W / 2, py + (HEADER - 8) / 2,
                 ClientGuildCache.isInGuild() ? C_GOLD : C_TEXT);
-        // Theme editor shortcut in top-right corner of the header
+        
         g.drawString(font, "Themes", px + W - 46, py + (HEADER - 8) / 2, C_DIM, false);
+        g.drawString(font, "Wiki", px + W - 46 - font.width("Wiki") - 8, py + (HEADER - 8) / 2, C_DIM, false);
     }
 
     private void drawTabs(GuiGraphics g) {
@@ -216,8 +207,6 @@ public class GuildScreen extends Screen {
         g.fill(px, py + HEADER + TAB_H, px + W, py + HEADER + TAB_H + 1, C_BORDER);
     }
 
-    // ── Guild tab ─────────────────────────────────────────────────────────────
-
     private void renderGuildTab(GuiGraphics g) {
         int y = py + CONTENT_TOP;
         if (!ClientGuildCache.isInGuild()) {
@@ -231,8 +220,6 @@ public class GuildScreen extends Screen {
             y += 12;
         }
 
-        // Mini flag preview, fixed 32×16 footprint regardless of the guild's actual configured
-        // flagWidth/flagHeight — the icon/drawing itself just scales to fit, same as any other icon draw.
         int flagW = 32;
         int flagH = 16;
         int flagX = px + W - 10 - flagW;
@@ -329,8 +316,6 @@ public class GuildScreen extends Screen {
         g.fill(px, py + H - 34, px + W, py + H - 33, C_BORDER2);
     }
 
-    // ── Allies tab ────────────────────────────────────────────────────────────
-
     private void renderAlliesTab(GuiGraphics g) {
         if (!ClientGuildCache.isInGuild()) {
             g.drawCenteredString(font, "You must be in a Guild to form alliances.", px + W / 2, py + 100, C_DIM);
@@ -403,8 +388,6 @@ public class GuildScreen extends Screen {
             g.drawString(font, "Send Alliance request:", px + 10, py + H - 63, C_DIM, false);
     }
 
-    // ── Browse tab ────────────────────────────────────────────────────────────
-
     private void renderBrowseTab(GuiGraphics g) {
         List<S2CGuildSyncPacket.GuildSummary> all = ClientGuildCache.allGuilds;
         int listTop = py + CONTENT_TOP + 14;
@@ -429,8 +412,6 @@ public class GuildScreen extends Screen {
         if (!ClientGuildCache.isInGuild())
             g.drawString(font, "Create a new Guild:", px + 10, py + H - 70, C_DIM, false);
     }
-
-    // ── Log tab ───────────────────────────────────────────────────────────────
 
     private void renderLogTab(GuiGraphics g) {
         if (!ClientGuildCache.isInGuild()) {
@@ -469,8 +450,6 @@ public class GuildScreen extends Screen {
         }
         RenderSystem.disableScissor();
     }
-
-    // ── Wiki tab ──────────────────────────────────────────────────────────────
 
     private void renderWikiTab(GuiGraphics g, int mx, int my) {
         if (!ClientGuildCache.isInGuild()) {
@@ -568,7 +547,15 @@ public class GuildScreen extends Screen {
         }
     }
 
-    // ── Input ─────────────────────────────────────────────────────────────────
+    private void openWiki() {
+        if (minecraft == null) return;
+        net.phoenixvine.wiki.theme.PhoenixTheme t = net.phoenixvine.wiki.theme.PhoenixTheme.current();
+        net.phoenixvine.wiki.client.screen.WikiTheme wikiTheme = new net.phoenixvine.wiki.client.screen.WikiTheme(
+                t.bg.getColor(), t.panel.getColor(), t.header.getColor(), t.border.getColor(),
+                t.accent.getColor(), t.text.getColor(), t.textDim.getColor(), t.textFaint.getColor(),
+                t.done.getColor(), t.activeColor.getColor());
+        net.phoenixvine.wiki.PhoenixWikiAPI.open(this, "phoenix_guilds", "wiki", wikiTheme);
+    }
 
     @Override
     public boolean mouseClicked(double mx, double my, int btn) {
@@ -584,11 +571,17 @@ public class GuildScreen extends Screen {
                 }
             }
         }
-        // Header "Themes" click
+        
         int themesBtnX = px + W - 46;
         int themesBtnY = py + (HEADER - 8) / 2;
         if (mx >= themesBtnX && mx < themesBtnX + 40 && my >= themesBtnY && my < themesBtnY + 8) {
-            minecraft.setScreen(new GuildThemeEditorScreen(this));
+            minecraft.setScreen(new net.phoenixvine.wiki.theme.PhoenixThemeEditorScreen(this, "Phoenix Guilds"));
+            return true;
+        }
+        int wikiBtnW = font.width("Wiki");
+        int wikiBtnX = themesBtnX - wikiBtnW - 8;
+        if (mx >= wikiBtnX && mx < wikiBtnX + wikiBtnW && my >= themesBtnY && my < themesBtnY + 8) {
+            openWiki();
             return true;
         }
         for (InlineBtn b : inlineBtns) {
@@ -612,8 +605,6 @@ public class GuildScreen extends Screen {
         scrollOff = (int) Math.max(0, Math.min(Math.max(0, size - 8), scrollOff - delta));
         return true;
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void act(C2SGuildActionPacket.Action action, String arg) {
         boolean needsArg = action != C2SGuildActionPacket.Action.LEAVE &&
@@ -653,5 +644,10 @@ public class GuildScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    @Override
+    public void onClose() {
+        Minecraft.getInstance().setScreen(parent);
     }
 }

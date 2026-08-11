@@ -1,14 +1,5 @@
 package net.phoenixvine.guilds.network;
 
-/**
- * Shared string-length caps for every {@code readUtf}/{@code writeUtf} pair across this package's
- * packets. Previously these were bare numeric literals duplicated at both the encode and decode
- * call site for each field — currently consistent, but nothing enforced that, so a future edit
- * to one side and not the other would silently desync client/server framing (the reader and
- * writer disagreeing on a field's max length corrupts everything after it in the same packet).
- * Naming them once and referencing the constant on both sides, the same way {@code
- * Guild.FLAG_PIXEL_DATA_LENGTH} already was, closes that risk outright.
- */
 public final class GuildNetworkLimits {
 
     public static final int NAME_MAX = 64;

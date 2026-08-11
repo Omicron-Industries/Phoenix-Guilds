@@ -24,11 +24,6 @@ import static net.phoenixvine.guilds.client.GuildThemeUtils.C_BORDER;
 import static net.phoenixvine.guilds.client.GuildThemeUtils.C_HEADER;
 import static net.phoenixvine.guilds.client.GuildThemeUtils.C_PANEL;
 
-/**
- * Lets a guild pick any registered item or block as its flag icon, searched by name — modeled
- * directly on Solaris's {@code WaypointItemPickerScreen} (same searchable-grid shape), since
- * Guilds has no equivalent of its own to reuse.
- */
 @OnlyIn(Dist.CLIENT)
 public class GuildFlagIconPickerScreen extends Screen {
 
@@ -121,7 +116,7 @@ public class GuildFlagIconPickerScreen extends Screen {
             int cellX = gridX + col * CELL;
             boolean hov = mx >= cellX && mx < cellX + CELL && my >= cellY && my < cellY + CELL;
             boolean sel = current != null &&
-                    (current.equals(GuildFlagIconManager.itemIconId(stack.getItem())));
+                    (current.equals(GuildFlagIconManager.iconIdFor(stack.getItem())));
             if (sel || hov) {
                 g.fill(cellX, cellY, cellX + CELL, cellY + CELL, sel ? C_PANEL : C_HEADER);
             }

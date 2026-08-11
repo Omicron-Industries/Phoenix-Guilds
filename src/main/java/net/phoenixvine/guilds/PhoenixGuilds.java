@@ -31,12 +31,8 @@ public class PhoenixGuilds {
 
         modEventBus.addListener(this::commonSetup);
 
-        // Safely initialize the client side ONLY if running on a physical client
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> PhoenixGuildsClient.init(modEventBus));
 
-        // Registration happens once here, not per-tick, so there's nothing to retry if it fails —
-        // just log and move on, same as every other optional integration in this mod family
-        // degrading instead of crashing when a soft dependency's jar is present but broken.
         if (GuildsGTCEuIntegration.isAvailable()) {
             try {
                 modEventBus.register(GuildOwnerTypeRegistrar.class);

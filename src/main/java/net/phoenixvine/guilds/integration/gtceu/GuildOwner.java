@@ -13,18 +13,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * {@link MachineOwner} type backed by Guilds membership. Extends {@link PlayerOwner} — GTCEu's
- * own default owner type — rather than {@code MachineOwner} directly: {@code MachineOwner} is
- * {@code sealed permits PlayerOwner, FTBOwner, ArgonautsOwner}, so a genuinely external class
- * cannot extend it, but {@code PlayerOwner} is deliberately declared {@code non-sealed} for
- * exactly this kind of further subclassing. Every override here falls back to {@code
- * PlayerOwner}'s own individual-player behavior when the machine's owner isn't currently in a
- * guild, so an ungildeded player's machines behave identically to vanilla GTCEu — this class only
- * ever adds team access, never removes the individual-owner baseline. Mirrors {@code FTBOwner}'s
- * own shape (team-name/team-id-when-teamed, individual-identity-otherwise) for consistency with
- * how GTCEu's other real team integrations already present themselves.
- */
 public class GuildOwner extends PlayerOwner {
 
     private static final Component DISPLAY_NAME = Component.translatable("gtceu.ownership.name.phoenix_guilds");

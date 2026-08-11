@@ -1,7 +1,9 @@
 {
 	"credit": "Simplified post — see GuildFlagBlock's class doc for why the old hand-modeled pole+plates+cap mesh (and its baked-in flagface placeholder) was replaced with this",
 	"texture_size": [2, 32],
+	"ambientocclusion": false,
 	"textures": {
+		"particle": "phoenix_guilds:block/guilds_flag",
 		"2": "phoenix_guilds:block/guilds_flag"
 	},
 	"elements": [

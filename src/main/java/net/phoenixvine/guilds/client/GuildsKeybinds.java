@@ -10,11 +10,9 @@ import net.phoenixvine.guilds.PhoenixGuilds;
 import com.mojang.blaze3d.platform.InputConstants;
 import org.lwjgl.glfw.GLFW;
 
-// 1. Explicitly tell Forge to ONLY load this class on a physical client
 @Mod.EventBusSubscriber(modid = PhoenixGuilds.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class GuildsKeybinds {
 
-    // 2. Changed category key to match standard vanilla conventions ("key.categories.modid")
     public static final KeyMapping OPEN_GUILDS = new KeyMapping(
             "key.phoenix_guilds.guilds",
             InputConstants.Type.KEYSYM,

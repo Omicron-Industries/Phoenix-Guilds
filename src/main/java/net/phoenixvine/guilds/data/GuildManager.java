@@ -16,16 +16,11 @@ import java.util.UUID;
 public class GuildManager extends SavedData {
 
     private static final String SAVE_KEY = "phoenix_guilds";
-    // Bumped whenever a future change needs an actual migration step (not just a new field with
-    // its own tag.contains() guard — those don't need a version bump). No migration exists yet;
-    // this is purely the hook so the next breaking change has somewhere real to attach to instead
-    // of inventing one under time pressure.
+
     private static final int DATA_VERSION = 1;
 
     private final Map<UUID, Guild> guilds = new LinkedHashMap<>();
     private final Map<UUID, UUID> memberIndex = new LinkedHashMap<>();
-
-    // ── SavedData factory ─────────────────────────────────────────────────────
 
     public static GuildManager get(ServerLevel overworld) {
         return overworld.getDataStorage().computeIfAbsent(
@@ -34,14 +29,12 @@ public class GuildManager extends SavedData {
 
     private static GuildManager load(CompoundTag tag) {
         GuildManager mgr = new GuildManager();
-        // Absent means "written before this field existed" — treated as version 0, the original
-        // unversioned format. if (version < N) { ... } migration steps go here as they're needed.
+
         int version = tag.contains("dataVersion") ? tag.getInt("dataVersion") : 0;
 
         ListTag list = tag.getList("guilds", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
-            // One malformed compound (disk corruption, a future bug, hand-edited NBT) must not
-            // take down every other guild's data along with it — isolate each entry.
+
             try {
                 Guild g = Guild.deserialize(list.getCompound(i));
                 mgr.guilds.put(g.getId(), g);
@@ -63,8 +56,6 @@ public class GuildManager extends SavedData {
         return tag;
     }
 
-    // ── Query ─────────────────────────────────────────────────────────────────
-
     public Optional<Guild> getGuildFor(UUID playerUUID) {
         UUID gid = memberIndex.get(playerUUID);
         return gid == null ? Optional.empty() : Optional.ofNullable(guilds.get(gid));
@@ -85,8 +76,6 @@ public class GuildManager extends SavedData {
     public boolean isInGuild(UUID playerUUID) {
         return memberIndex.containsKey(playerUUID);
     }
-
-    // ── Member mutations ──────────────────────────────────────────────────────
 
     public Guild createGuild(String name, UUID ownerUUID) {
         Guild g = new Guild(UUID.randomUUID(), name, ownerUUID);
@@ -135,9 +124,6 @@ public class GuildManager extends SavedData {
         setDirty();
     }
 
-    // ── Rank mutations ────────────────────────────────────────────────────────
-
-    /** Returns error key or "ok". */
     public String promotePlayer(UUID guildId, UUID promoterUUID, UUID targetUUID) {
         Guild g = guilds.get(guildId);
         if (g == null) return "not_in_guild";
@@ -146,7 +132,7 @@ public class GuildManager extends SavedData {
         GuildRank current = g.getRank(targetUUID);
         if (current == GuildRank.OWNER) return "already_owner";
         if (current == GuildRank.OFFICER) {
-            // Promote to owner = transfer
+            
             g.setOwner(targetUUID);
         } else {
             g.getMemberRanks().put(targetUUID, GuildRank.OFFICER);
@@ -177,8 +163,6 @@ public class GuildManager extends SavedData {
         setDirty();
         return "ok";
     }
-
-    // ── Guild settings mutations ───────────────────────────────────────────────
 
     public boolean setMotd(UUID guildId, UUID playerUUID, String motd) {
         Guild g = guilds.get(guildId);
@@ -223,8 +207,6 @@ public class GuildManager extends SavedData {
         return true;
     }
 
-    // ── Wiki mutations ────────────────────────────────────────────────────────
-
     public String setWikiPage(UUID guildId, UUID playerUUID, String title, String content) {
         Guild g = guilds.get(guildId);
         if (g == null) return "not_in_guild";
@@ -243,8 +225,6 @@ public class GuildManager extends SavedData {
         setDirty();
         return "ok";
     }
-
-    // ── Alliance mutations ────────────────────────────────────────────────────
 
     public String sendAllyRequest(UUID requesterGuildId, String targetName) {
         Guild requester = guilds.get(requesterGuildId);

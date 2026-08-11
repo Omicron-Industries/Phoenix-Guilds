@@ -7,25 +7,24 @@ import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.data.GuildManager;
 import net.phoenixvine.guilds.event.GuildEvents;
 
+import java.util.UUID;
 import java.util.function.Supplier;
 
-/**
- * Sets the guild's flag — either an item/block icon or a hand-painted pixel grid, plus render
- * size — in one shot. A dedicated packet rather than another {@code C2SGuildActionPacket} action,
- * since that packet's single-{@code String}-payload envelope would need fragile
- * delimiter-encoding to carry this many fields. Sent both from {@code GuildFlagEditorScreen}'s
- * Save button and from a flag block's instant-apply right-click (with {@code useDrawing=false}
- * and {@code pixelData=""} in that case — right-clicking with an item always sets icon mode).
- */
+import javax.annotation.Nullable;
+
 public class C2SSetGuildFlagPacket {
 
+    @Nullable
+    private final UUID targetGuildId;
     private final boolean useDrawing;
     private final String iconId;
     private final String pixelData;
     private final int width;
     private final int height;
 
-    public C2SSetGuildFlagPacket(boolean useDrawing, String iconId, String pixelData, int width, int height) {
+    public C2SSetGuildFlagPacket(@Nullable UUID targetGuildId, boolean useDrawing, String iconId, String pixelData,
+                                 int width, int height) {
+        this.targetGuildId = targetGuildId;
         this.useDrawing = useDrawing;
         this.iconId = iconId;
         this.pixelData = pixelData;
@@ -34,6 +33,7 @@ public class C2SSetGuildFlagPacket {
     }
 
     public C2SSetGuildFlagPacket(FriendlyByteBuf buf) {
+        this.targetGuildId = buf.readBoolean() ? buf.readUUID() : null;
         this.useDrawing = buf.readBoolean();
         this.iconId = buf.readUtf(GuildNetworkLimits.ICON_ID_MAX);
         this.pixelData = buf.readUtf(Guild.FLAG_PIXEL_DATA_LENGTH);
@@ -42,6 +42,8 @@ public class C2SSetGuildFlagPacket {
     }
 
     public void encode(FriendlyByteBuf buf) {
+        buf.writeBoolean(targetGuildId != null);
+        if (targetGuildId != null) buf.writeUUID(targetGuildId);
         buf.writeBoolean(useDrawing);
         buf.writeUtf(iconId, GuildNetworkLimits.ICON_ID_MAX);
         buf.writeUtf(pixelData, Guild.FLAG_PIXEL_DATA_LENGTH);
@@ -54,7 +56,7 @@ public class C2SSetGuildFlagPacket {
             ServerPlayer player = ctx.get().getSender();
             if (player == null) return;
             GuildManager mgr = GuildManager.get(player.getServer().overworld());
-            GuildEvents.handleSetFlag(player, mgr, useDrawing, iconId, pixelData, width, height);
+            GuildEvents.handleSetFlag(player, mgr, targetGuildId, useDrawing, iconId, pixelData, width, height);
         });
         ctx.get().setPacketHandled(true);
     }
