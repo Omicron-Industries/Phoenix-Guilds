@@ -31,11 +31,11 @@ public class Guild {
     private final Set<UUID> allies = new LinkedHashSet<>();
     private final Set<UUID> pendingOutgoing = new LinkedHashSet<>();
     private final Deque<LogEntry> log = new ArrayDeque<>();
-    private final Map<String, String> wikiPages = new LinkedHashMap<>(); 
+    private final Map<String, String> wikiPages = new LinkedHashMap<>();
 
     private String motd = "";
     private String description = "";
-    private boolean friendlyFire = false; 
+    private boolean friendlyFire = false;
 
     private String flagIconId = "";
     private String flagPixelData = "ffffff".repeat(MAX_FLAG_SIZE * MAX_FLAG_SIZE);
@@ -383,7 +383,7 @@ public class Guild {
                 g.memberRanks.put(uuid, rank);
             } catch (Exception ignored) {}
         }
-        
+
         for (UUID m : g.members) g.memberRanks.putIfAbsent(m, GuildRank.MEMBER);
         g.memberRanks.put(owner, GuildRank.OWNER);
 

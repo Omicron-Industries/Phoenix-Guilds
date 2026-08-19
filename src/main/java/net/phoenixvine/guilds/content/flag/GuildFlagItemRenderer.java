@@ -78,27 +78,27 @@ public class GuildFlagItemRenderer extends BlockEntityWithoutLevelRenderer {
         vertex(vc, matrix, x0, y0, z1, 0, 1, 0, 0, 1, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y0, z1, 1, 1, 0, 0, 1, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y1, z1, 1, 0, 0, 0, 1, packedLight, packedOverlay);
-        
+
         vertex(vc, matrix, x1, y1, z0, 0, 0, 0, 0, -1, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y0, z0, 0, 1, 0, 0, -1, packedLight, packedOverlay);
         vertex(vc, matrix, x0, y0, z0, 1, 1, 0, 0, -1, packedLight, packedOverlay);
         vertex(vc, matrix, x0, y1, z0, 1, 0, 0, 0, -1, packedLight, packedOverlay);
-        
+
         vertex(vc, matrix, x1, y1, z1, 0, 0, 1, 0, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y0, z1, 0, 1, 1, 0, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y0, z0, 1, 1, 1, 0, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y1, z0, 1, 0, 1, 0, 0, packedLight, packedOverlay);
-        
+
         vertex(vc, matrix, x0, y1, z0, 0, 0, -1, 0, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x0, y0, z0, 0, 1, -1, 0, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x0, y0, z1, 1, 1, -1, 0, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x0, y1, z1, 1, 0, -1, 0, 0, packedLight, packedOverlay);
-        
+
         vertex(vc, matrix, x0, y1, z0, 0, 0, 0, 1, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x0, y1, z1, 0, CAP_V, 0, 1, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y1, z1, 1, CAP_V, 0, 1, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y1, z0, 1, 0, 0, 1, 0, packedLight, packedOverlay);
-        
+
         vertex(vc, matrix, x0, y0, z0, 0, 0, 0, -1, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y0, z0, 1, 0, 0, -1, 0, packedLight, packedOverlay);
         vertex(vc, matrix, x1, y0, z1, 1, CAP_V, 0, -1, 0, packedLight, packedOverlay);

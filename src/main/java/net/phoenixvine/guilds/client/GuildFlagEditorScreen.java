@@ -118,15 +118,11 @@ public class GuildFlagEditorScreen extends Screen {
 
         previewSize = PREVIEW_SIZE;
 
-        int rightH = ROW_H + ROW_GAP 
-                + ROW_H + ROW_GAP 
-                + TITLE_H + ROW_GAP 
-                + ROW_H + ROW_GAP; 
+        int rightH = ROW_H + ROW_GAP + ROW_H + ROW_GAP + TITLE_H + ROW_GAP + ROW_H + ROW_GAP;
         if (mode == Mode.DRAWING) {
-            rightH += ROW_H + ROW_GAP 
-                    + ROW_H + ROW_GAP; 
+            rightH += ROW_H + ROW_GAP + ROW_H + ROW_GAP;
         }
-        rightH += ROW_H; 
+        rightH += ROW_H;
 
         if (mode == Mode.DRAWING) {
 

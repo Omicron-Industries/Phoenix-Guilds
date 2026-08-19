@@ -23,7 +23,7 @@ import java.util.UUID;
 public final class GuildFlagPixelArt {
 
     public static final int MAX_DIM = Guild.MAX_FLAG_SIZE;
-    
+
     public static final int CHARS_PER_PIXEL = 6;
 
     public static final int[] PALETTE = {

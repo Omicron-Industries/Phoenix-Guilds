@@ -12,7 +12,6 @@ public class ClientTickHandler {
 
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        
         if (event.phase != TickEvent.Phase.END) return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -20,7 +19,7 @@ public class ClientTickHandler {
         if (mc.player == null || mc.level == null) return;
 
         while (GuildsKeybinds.OPEN_GUILDS.consumeClick()) {
-            
+
             if (mc.screen == null) {
                 mc.setScreen(new GuildScreen());
             }

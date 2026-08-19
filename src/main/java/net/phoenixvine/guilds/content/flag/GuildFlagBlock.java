@@ -27,7 +27,6 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.phoenixvine.guilds.GuildAPI;
-import net.phoenixvine.guilds.client.GuildFlagEditorScreen;
 import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.data.GuildManager;
 import net.phoenixvine.guilds.event.GuildEvents;
@@ -59,7 +58,6 @@ public class GuildFlagBlock extends Block implements EntityBlock {
 
     @Override
     public RenderShape getRenderShape(BlockState state) {
-
         return state.getValue(HALF) == DoubleBlockHalf.LOWER ? RenderShape.MODEL : RenderShape.INVISIBLE;
     }
 
@@ -87,7 +85,6 @@ public class GuildFlagBlock extends Block implements EntityBlock {
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        
         return state.getValue(HALF) == DoubleBlockHalf.LOWER ? new GuildFlagBlockEntity(pos, state) : null;
     }
 

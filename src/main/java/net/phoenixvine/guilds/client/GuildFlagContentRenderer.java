@@ -39,7 +39,7 @@ public final class GuildFlagContentRenderer {
             case SOUTH -> 180f;
             case WEST -> 90f;
             case EAST -> -90f;
-            default -> 0f; 
+            default -> 0f;
         };
     }
 

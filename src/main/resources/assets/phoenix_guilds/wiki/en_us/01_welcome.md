@@ -9,15 +9,15 @@ Phoenix Guilds adds player guilds with claims, ranks, alliances, and a shared gu
 
 ## Alliances
 
-Allied guilds show up in a distinct color (the theme's **Ally** color) across the UI - see
+Allied guilds show up in a distinct color (the theme's **Ally** color) across the UI. See
 allies from the Diplomacy tab.
 
 ## Guild wiki
 
-Each guild has its own wiki pages, editable by members with permission - separate from this dev
+Each guild has its own wiki pages, editable by members with permission. Separate from this dev
 reference, it's for guild notices, rules, and shared notes.
 
 ## Theme
 
-Phoenix Guilds shares its color theme with every other Phoenix mod installed - use the **Themes**
+Phoenix Guilds shares its color theme with every other PhoenixSuite mod installed. Use the **Themes**
 link in the guild screen's header to customize it, and it applies everywhere at once.

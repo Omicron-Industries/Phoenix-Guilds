@@ -11,7 +11,7 @@ public final class GuildThemeUtils {
     public static int C_PANEL;
     public static int C_HEADER;
     public static int C_BORDER;
-    public static int C_BORDER2; 
+    public static int C_BORDER2;
     public static int C_ACCENT;
     public static int C_ALLY;
     public static int C_TEXT;

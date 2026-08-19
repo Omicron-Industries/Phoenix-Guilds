@@ -1,6 +1,5 @@
 package net.phoenixvine.guilds.integration.gtceu;
 
-import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.common.machine.owner.PlayerOwner;
 
 import net.minecraft.network.chat.Component;

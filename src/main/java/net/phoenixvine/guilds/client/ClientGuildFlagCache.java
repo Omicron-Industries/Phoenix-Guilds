@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class ClientGuildFlagCache {
 
-    private static final long REFRESH_INTERVAL_TICKS = 200; 
+    private static final long REFRESH_INTERVAL_TICKS = 200;
 
     public record FlagData(String iconId, String pixelData, boolean useDrawing, int width, int height) {}
 
