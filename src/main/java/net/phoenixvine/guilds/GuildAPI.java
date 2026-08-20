@@ -131,10 +131,31 @@ public final class GuildAPI {
     public static String getDisplayName(UUID guildOrPlayerToken) {
         if (guildOrPlayerToken == null) return "Unknown";
         GuildManager mgr = manager();
-        if (mgr == null) return "Player: " + guildOrPlayerToken.toString().substring(0, 8);
-        return mgr.getGuildById(guildOrPlayerToken)
-                .map(Guild::getName)
-                .orElse("Player: " + guildOrPlayerToken.toString().substring(0, 8));
+        if (mgr != null) {
+            Optional<String> guildName = mgr.getGuildById(guildOrPlayerToken).map(Guild::getName);
+            if (guildName.isPresent()) return guildName.get();
+        }
+        return resolvePlayerName(guildOrPlayerToken);
+    }
+
+    /**
+     * Resolves a player UUID to their username via the server's online player list, falling back
+     * to the persistent profile cache (usernames.json) for offline players who have joined before.
+     * Falls back to a short UUID snippet only if neither source has the name (e.g. the player has
+     * never joined this server).
+     */
+    private static String resolvePlayerName(UUID playerUUID) {
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server != null) {
+            ServerPlayer online = server.getPlayerList().getPlayer(playerUUID);
+            if (online != null) return online.getGameProfile().getName();
+
+            if (server.getProfileCache() != null) {
+                Optional<com.mojang.authlib.GameProfile> cached = server.getProfileCache().get(playerUUID);
+                if (cached.isPresent()) return cached.get().getName();
+            }
+        }
+        return "Player: " + playerUUID.toString().substring(0, 8);
     }
 
     private static GuildManager manager() {

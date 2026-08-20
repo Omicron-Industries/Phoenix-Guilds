@@ -205,7 +205,7 @@ public class GuildScreen extends Screen {
             g.drawCenteredString(font, label, tx + tabW / 2, ty + (TAB_H - 8) / 2, active ? C_TEXT : C_DIM);
         }
         g.fill(px, py + HEADER + TAB_H, px + W, py + HEADER + TAB_H + 1, C_BORDER);
-        
+
         g.fill(px, py + HEADER, px + 1, py + HEADER + TAB_H, C_BORDER);
         g.fill(px + W - 1, py + HEADER, px + W, py + HEADER + TAB_H, C_BORDER);
     }
