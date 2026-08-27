@@ -14,6 +14,13 @@ public class ClientTickHandler {
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
 
+        // GuildThemeUtils only resolved theme colors once, in a static initializer, so an animated
+        // theme (e.g. rainbow) would freeze at whatever color it happened to be on class-load and
+        // ordinary theme switches wouldn't apply without a client restart either - refresh it here
+        // every tick so both cases stay live, matching how the other suite mods refresh their own
+        // theme palettes every render frame.
+        GuildThemeUtils.refreshCache();
+
         Minecraft mc = Minecraft.getInstance();
 
         if (mc.player == null || mc.level == null) return;

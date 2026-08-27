@@ -121,7 +121,7 @@ public class GuildScreen extends Screen {
             if (confirmed) act(C2SGuildActionPacket.Action.DISBAND, "");
             Minecraft.getInstance().setScreen(this);
         }, Component.literal("§4Delete Guild"),
-                Component.literal("Permanently delete '" + name + "'? This cannot be undone — every member, " +
+                Component.literal("Permanently delete '" + name + "'? This cannot be undone. Every member, " +
                         "the wiki, the log, and the flag will be gone."),
                 Component.literal("Delete Guild"), Component.literal("Cancel")));
     }

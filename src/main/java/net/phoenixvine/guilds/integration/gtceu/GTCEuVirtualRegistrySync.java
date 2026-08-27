@@ -24,7 +24,7 @@ public final class GTCEuVirtualRegistrySync {
             VirtualEnderRegistry registry = VirtualEnderRegistry.getInstance();
             for (EntryTypes<?> type : KNOWN_TYPES) migrateType(registry, from, to, type);
         } catch (Throwable t) {
-            PhoenixGuilds.LOGGER.error("Failed to migrate GTCEu virtual registry entries from {} to {} — any" +
+            PhoenixGuilds.LOGGER.error("Failed to migrate GTCEu virtual registry entries from {} to {}. Any" +
                     " existing Ender Link Cover networks may need manual reconfiguring.", from, to, t);
         }
     }
@@ -36,7 +36,7 @@ public final class GTCEuVirtualRegistrySync {
 
         for (String name : new ArrayList<>(names)) {
             if (registry.hasEntry(to, type, name)) {
-                PhoenixGuilds.LOGGER.warn("GTCEu virtual entry '{}' already exists under {} — leaving the one" +
+                PhoenixGuilds.LOGGER.warn("GTCEu virtual entry '{}' already exists under {}. Leaving the one" +
                         " from {} in place; it'll need a manual rename to reconnect.", name, to, from);
                 continue;
             }

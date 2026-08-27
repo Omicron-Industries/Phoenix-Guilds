@@ -37,7 +37,7 @@ public class PhoenixGuilds {
             try {
                 modEventBus.register(GuildOwnerTypeRegistrar.class);
             } catch (Throwable t) {
-                LOGGER.error("GregTech-Modern is present but its integration failed to register — machine" +
+                LOGGER.error("GregTech-Modern is present but its integration failed to register/ Machine" +
                         " ownership won't be guild-aware this session.", t);
             }
         }

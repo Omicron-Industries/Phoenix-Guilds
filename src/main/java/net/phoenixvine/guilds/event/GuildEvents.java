@@ -364,7 +364,7 @@ public class GuildEvents {
             GTCEuVirtualRegistrySync.migrateToGuild(from, to);
         } catch (Throwable t) {
             PhoenixGuilds.LOGGER.error("GregTech-Modern is present but migrating virtual registry ownership" +
-                    " failed — any existing Ender Link Cover networks may need manual reconfiguring.", t);
+                    " failed. Any existing Ender Link Cover networks may need manual reconfiguring.", t);
         }
     }
 
