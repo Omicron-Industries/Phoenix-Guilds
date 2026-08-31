@@ -1,24 +1,28 @@
 package net.phoenixvine.guilds.network;
 
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.phoenixvine.guilds.PhoenixGuilds;
 import net.phoenixvine.guilds.client.ClientPacketHandler;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.function.Supplier;
+public record S2COpenGuildScreenPacket() implements CustomPacketPayload {
 
-public class S2COpenGuildScreenPacket {
+    public static final Type<S2COpenGuildScreenPacket> TYPE =
+            new Type<>(ResourceLocation.fromNamespaceAndPath(PhoenixGuilds.MOD_ID, "open_guild_screen"));
 
-    public S2COpenGuildScreenPacket() {}
+    public static final StreamCodec<FriendlyByteBuf, S2COpenGuildScreenPacket> STREAM_CODEC =
+            StreamCodec.unit(new S2COpenGuildScreenPacket());
 
-    public S2COpenGuildScreenPacket(FriendlyByteBuf buf) {}
+    @Override
+    public @NotNull Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
 
-    public void encode(FriendlyByteBuf buf) {}
-
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> ClientPacketHandler.openGuildScreen()));
-        ctx.get().setPacketHandled(true);
+    public static void handle(final S2COpenGuildScreenPacket payload, final IPayloadContext context) {
+        context.enqueueWork(ClientPacketHandler::openGuildScreen);
     }
 }

@@ -2,7 +2,7 @@ package net.phoenixvine.guilds.client;
 
 import net.minecraft.client.Minecraft;
 import net.phoenixvine.guilds.network.C2SRequestGuildFlagPacket;
-import net.phoenixvine.guilds.network.GuildNetwork;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.Map;
 import java.util.UUID;
@@ -29,7 +29,7 @@ public final class ClientGuildFlagCache {
         Long lastRequested = LAST_REQUESTED_TICK.get(guildId);
         if (lastRequested == null || now - lastRequested >= REFRESH_INTERVAL_TICKS) {
             LAST_REQUESTED_TICK.put(guildId, now);
-            GuildNetwork.CHANNEL.sendToServer(new C2SRequestGuildFlagPacket(guildId));
+            PacketDistributor.sendToServer(new C2SRequestGuildFlagPacket(guildId));
         }
         return CACHE.get(guildId);
     }

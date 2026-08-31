@@ -2,7 +2,7 @@ package net.phoenixvine.guilds;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.server.ServerLifecycleHooks;
+import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.data.GuildManager;
 import net.phoenixvine.guilds.data.GuildRank;
@@ -138,12 +138,6 @@ public final class GuildAPI {
         return resolvePlayerName(guildOrPlayerToken);
     }
 
-    /**
-     * Resolves a player UUID to their username via the server's online player list, falling back
-     * to the persistent profile cache (usernames.json) for offline players who have joined before.
-     * Falls back to a short UUID snippet only if neither source has the name (e.g. the player has
-     * never joined this server).
-     */
     private static String resolvePlayerName(UUID playerUUID) {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server != null) {

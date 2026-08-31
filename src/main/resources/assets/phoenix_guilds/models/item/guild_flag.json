@@ -1,3 +1,6 @@
 {
-  "parent": "builtin/entity"
+  "model": {
+    "type": "minecraft:model",
+    "model": "phoenix_guilds:item/guild_flag_inventory"
+  }
 }

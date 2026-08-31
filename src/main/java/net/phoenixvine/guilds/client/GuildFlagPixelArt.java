@@ -85,14 +85,33 @@ public final class GuildFlagPixelArt {
         Matrix4f matrix = poseStack.last().pose();
         VertexConsumer vertexConsumer = buffer.getBuffer(RenderType.entityTranslucent(texture));
 
-        vertexConsumer.vertex(matrix, -0.5f, 0.5f, 0).color(255, 255, 255, 255).uv(0, 0)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
-        vertexConsumer.vertex(matrix, 0.5f, 0.5f, 0).color(255, 255, 255, 255).uv(1, 0)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
-        vertexConsumer.vertex(matrix, 0.5f, -0.5f, 0).color(255, 255, 255, 255).uv(1, 1)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
-        vertexConsumer.vertex(matrix, -0.5f, -0.5f, 0).color(255, 255, 255, 255).uv(0, 1)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
+        vertexConsumer.addVertex(matrix, -0.5f, 0.5f, 0f)
+                .setColor(255, 255, 255, 255)
+                .setUv(0, 0)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(packedLight)
+                .setNormal(0, 0, 1);
+
+        vertexConsumer.addVertex(matrix, 0.5f, 0.5f, 0f)
+                .setColor(255, 255, 255, 255)
+                .setUv(1, 0)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(packedLight)
+                .setNormal(0, 0, 1);
+
+        vertexConsumer.addVertex(matrix, 0.5f, -0.5f, 0f)
+                .setColor(255, 255, 255, 255)
+                .setUv(1, 1)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(packedLight)
+                .setNormal(0, 0, 1);
+
+        vertexConsumer.addVertex(matrix, -0.5f, -0.5f, 0f)
+                .setColor(255, 255, 255, 255)
+                .setUv(0, 1)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(packedLight)
+                .setNormal(0, 0, 1);
     }
 
     private static ResourceLocation textureFor(UUID guildId, String pixelData, int flagWidth, int flagHeight) {
@@ -117,7 +136,7 @@ public final class GuildFlagPixelArt {
         }
         DynamicTexture texture = new DynamicTexture(image);
         texture.setFilter(false, false);
-        ResourceLocation loc = new ResourceLocation(PhoenixGuilds.MOD_ID,
+        ResourceLocation loc =  ResourceLocation.fromNamespaceAndPath(PhoenixGuilds.MOD_ID,
                 "dynamic/guild_flag_pixel_art_" + guildId);
         Minecraft.getInstance().getTextureManager().register(loc, texture);
 

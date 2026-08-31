@@ -1,84 +1,49 @@
 package net.phoenixvine.guilds.network;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
-import net.phoenixvine.guilds.PhoenixGuilds;
-
-import java.util.Optional;
+import net.neoforged.bus.api.SubscribeEvent; 
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public class GuildNetwork {
 
-    private static final String PROTOCOL = "2";
-    public static SimpleChannel CHANNEL;
-    private static int id = 0;
+    @SubscribeEvent 
+    public static void register(final RegisterPayloadHandlersEvent event) {
+        final PayloadRegistrar registrar = event.registrar("1");
 
-    public static void init() {
-        CHANNEL = NetworkRegistry.newSimpleChannel(
-                new ResourceLocation(PhoenixGuilds.MOD_ID, "main"),
-                () -> PROTOCOL,
-                PROTOCOL::equals,
-                PROTOCOL::equals);
+        registrar.playToServer(
+                C2SGuildActionPacket.TYPE,
+                C2SGuildActionPacket.STREAM_CODEC,
+                C2SGuildActionPacket::handle
+        );
 
-        CHANNEL.registerMessage(id++,
-                C2SGuildActionPacket.class,
-                C2SGuildActionPacket::encode,
-                C2SGuildActionPacket::new,
-                C2SGuildActionPacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        registrar.playToServer(
+                C2SSetGuildFlagPacket.TYPE,
+                C2SSetGuildFlagPacket.STREAM_CODEC,
+                C2SSetGuildFlagPacket::handle
+        );
 
-        CHANNEL.registerMessage(id++,
-                C2SSetGuildFlagPacket.class,
-                C2SSetGuildFlagPacket::encode,
-                C2SSetGuildFlagPacket::new,
-                C2SSetGuildFlagPacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        registrar.playToServer(
+                C2SRequestGuildFlagPacket.TYPE,
+                C2SRequestGuildFlagPacket.STREAM_CODEC,
+                C2SRequestGuildFlagPacket::handle
+        );
 
-        CHANNEL.registerMessage(id++,
-                C2SRequestGuildFlagPacket.class,
-                C2SRequestGuildFlagPacket::encode,
-                C2SRequestGuildFlagPacket::new,
-                C2SRequestGuildFlagPacket::handle,
-                Optional.of(NetworkDirection.PLAY_TO_SERVER));
+        registrar.playToClient(
+                S2CGuildSyncPacket.TYPE,
+                S2CGuildSyncPacket.STREAM_CODEC,
+                S2CGuildSyncPacket::handle
+        );
 
-        CHANNEL.registerMessage(id++,
-                S2CGuildSyncPacket.class,
-                S2CGuildSyncPacket::encode,
-                S2CGuildSyncPacket::new,
-                (pkt, ctxSupplier) -> {
-                    NetworkEvent.Context ctx = ctxSupplier.get();
-                    ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                            () -> () -> GuildPacketHandlerClient.handleSyncPacket(pkt)));
-                    ctx.setPacketHandled(true);
-                },
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        registrar.playToClient(
+                S2COpenGuildScreenPacket.TYPE,
+                S2COpenGuildScreenPacket.STREAM_CODEC,
+                S2COpenGuildScreenPacket::handle
+        );
 
-        CHANNEL.registerMessage(id++,
-                S2COpenGuildScreenPacket.class,
-                S2COpenGuildScreenPacket::encode,
-                S2COpenGuildScreenPacket::new,
-                (pkt, ctxSupplier) -> {
-                    NetworkEvent.Context ctx = ctxSupplier.get();
-                    ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                            () -> () -> GuildPacketHandlerClient.handleOpenScreenPacket()));
-                    ctx.setPacketHandled(true);
-                },
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
-
-        CHANNEL.registerMessage(id++,
-                S2CGuildFlagPacket.class,
-                S2CGuildFlagPacket::encode,
-                S2CGuildFlagPacket::new,
-                (pkt, ctxSupplier) -> {
-                    NetworkEvent.Context ctx = ctxSupplier.get();
-                    ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                            () -> () -> GuildPacketHandlerClient.handleClientFlagPacket(pkt)));
-                    ctx.setPacketHandled(true);
-                },
-                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+        registrar.playToClient(
+                S2CGuildFlagPacket.TYPE,
+                S2CGuildFlagPacket.STREAM_CODEC,
+                S2CGuildFlagPacket::handle
+        );
     }
 }

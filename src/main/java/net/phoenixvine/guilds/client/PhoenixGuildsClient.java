@@ -1,13 +1,13 @@
 package net.phoenixvine.guilds.client;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ItemBlockRenderTypes; 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.phoenixvine.guilds.PhoenixGuilds;
 import net.phoenixvine.guilds.content.flag.GuildFlagBlockEntityRenderer;
 import net.phoenixvine.guilds.content.flag.GuildFlagBlocks;
@@ -17,7 +17,8 @@ import net.phoenixvine.wiki.theme.PhoenixTheme;
 public class PhoenixGuildsClient {
 
     public static void init(IEventBus modEventBus) {
-        modEventBus.register(GuildsKeybinds.class);
+        
+        modEventBus.addListener(GuildsKeybinds::register);
 
         modEventBus.addListener(PhoenixGuildsClient::clientSetup);
 

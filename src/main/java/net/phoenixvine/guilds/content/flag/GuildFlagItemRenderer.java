@@ -19,7 +19,7 @@ import org.joml.Matrix4f;
 
 public class GuildFlagItemRenderer extends BlockEntityWithoutLevelRenderer {
 
-    private static final ResourceLocation POLE_TEXTURE = new ResourceLocation(PhoenixGuilds.MOD_ID,
+    private static final ResourceLocation POLE_TEXTURE = ResourceLocation.fromNamespaceAndPath(PhoenixGuilds.MOD_ID,
             "textures/block/guilds_flag.png");
     private static final float POLE_MIN = 7f / 16f;
     private static final float POLE_MAX = 9f / 16f;
@@ -107,7 +107,11 @@ public class GuildFlagItemRenderer extends BlockEntityWithoutLevelRenderer {
 
     private static void vertex(VertexConsumer vc, Matrix4f matrix, float x, float y, float z, float u, float v,
                                float nx, float ny, float nz, int packedLight, int packedOverlay) {
-        vc.vertex(matrix, x, y, z).color(255, 255, 255, 255).uv(u, v).overlayCoords(packedOverlay).uv2(packedLight)
-                .normal(nx, ny, nz).endVertex();
+        vc.addVertex(matrix, x, y, z)
+                .setColor(255, 255, 255, 255)
+                .setUv(u, v)
+                .setOverlay(packedOverlay)
+                .setLight(packedLight)
+                .setNormal(nx, ny, nz);
     }
 }

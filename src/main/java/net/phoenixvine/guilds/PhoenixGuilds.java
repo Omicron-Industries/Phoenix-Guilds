@@ -2,13 +2,12 @@ package net.phoenixvine.guilds;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Items;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.common.NeoForge;
 import net.phoenixvine.guilds.client.PhoenixGuildsClient;
 import net.phoenixvine.guilds.content.flag.GuildFlagBlocks;
 import net.phoenixvine.guilds.integration.gtceu.GuildOwnerTypeRegistrar;
@@ -24,35 +23,35 @@ public class PhoenixGuilds {
     public static final String MOD_ID = "phoenix_guilds";
     public static final Logger LOGGER = LogManager.getLogger();
 
-    public PhoenixGuilds() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
+    public PhoenixGuilds(IEventBus modEventBus) {
+        
         GuildFlagBlocks.register(modEventBus);
-
+        modEventBus.register(GuildNetwork.class);
+        
         modEventBus.addListener(this::commonSetup);
 
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> PhoenixGuildsClient.init(modEventBus));
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            PhoenixGuildsClient.init(modEventBus);
+        }
 
         if (GuildsGTCEuIntegration.isAvailable()) {
             try {
                 modEventBus.register(GuildOwnerTypeRegistrar.class);
             } catch (Throwable t) {
-                LOGGER.error("GregTech-Modern is present but its integration failed to register/ Machine" +
-                        " ownership won't be guild-aware this session.", t);
+                LOGGER.error("GregTech-Modern is present but its integration failed to register/ Machine " +
+                        "ownership won't be guild-aware this session.", t);
             }
         }
 
-        MinecraftForge.EVENT_BUS.register(this);
     }
 
     public static ResourceLocation id(String path) {
-        return new ResourceLocation(MOD_ID, path);
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             LOGGER.info("Initializing Guild Network safely...");
-            GuildNetwork.init();
 
             LOGGER.info("Hello from common setup! Found a {}!", Items.DIAMOND);
         });

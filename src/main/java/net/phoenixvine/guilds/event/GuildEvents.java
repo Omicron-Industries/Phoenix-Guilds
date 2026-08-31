@@ -2,6 +2,7 @@ package net.phoenixvine.guilds.event;
 
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
@@ -10,13 +11,11 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.phoenixvine.guilds.PhoenixGuilds;
 import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.data.GuildManager;
@@ -36,8 +35,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import net.neoforged.fml.common.EventBusSubscriber;
 
-@Mod.EventBusSubscriber(modid = PhoenixGuilds.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(modid = PhoenixGuilds.MOD_ID)
 public class GuildEvents {
 
     private static final Map<UUID, Long> HOME_COOLDOWNS = new ConcurrentHashMap<>();
@@ -58,17 +58,19 @@ public class GuildEvents {
     }
 
     @SubscribeEvent
-    public static void onLivingAttack(LivingAttackEvent event) {
+    public static void onLivingIncomingDamage(LivingIncomingDamageEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer victim)) return;
         DamageSource src = event.getSource();
         if (!(src.getEntity() instanceof ServerPlayer attacker)) return;
         if (victim.getUUID().equals(attacker.getUUID())) return;
 
+        if (victim.getServer() == null) return;
         GuildManager mgr = GuildManager.get(victim.getServer().overworld());
         Optional<Guild> vGuild = mgr.getGuildFor(victim.getUUID());
         Optional<Guild> aGuild = mgr.getGuildFor(attacker.getUUID());
 
-        if (vGuild.isPresent() && aGuild.isPresent() && vGuild.get().getId().equals(aGuild.get().getId()) &&
+        if (vGuild.isPresent() && aGuild.isPresent() &&
+                vGuild.get().getId().equals(aGuild.get().getId()) &&
                 !vGuild.get().isFriendlyFire()) {
             event.setCanceled(true);
         }
@@ -343,7 +345,7 @@ public class GuildEvents {
     }
 
     public static void syncToPlayer(ServerPlayer player, GuildManager mgr) {
-        GuildNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), buildPacketFor(player, mgr));
+        PacketDistributor.sendToPlayer(player, buildPacketFor(player, mgr));
     }
 
     public static void syncToGuild(Guild guild, MinecraftServer server, GuildManager mgr) {
@@ -358,13 +360,13 @@ public class GuildEvents {
             if (!mgr.isInGuild(p.getUUID())) syncToPlayer(p, mgr);
     }
 
-    private static void migrateGTCEuOwnership(UUID from, UUID to) {
+    private static void migrateGTCEuOwnership(net.minecraft.server.level.ServerPlayer player, UUID from, UUID to) {
         if (!GuildsGTCEuIntegration.isAvailable()) return;
         try {
-            GTCEuVirtualRegistrySync.migrateToGuild(from, to);
+            GTCEuVirtualRegistrySync.migrateToGuild(player.serverLevel(), from, to);
         } catch (Throwable t) {
-            PhoenixGuilds.LOGGER.error("GregTech-Modern is present but migrating virtual registry ownership" +
-                    " failed. Any existing Ender Link Cover networks may need manual reconfiguring.", t);
+            PhoenixGuilds.LOGGER.error("GregTech-Modern is present but migrating virtual registry ownership " +
+                    "failed. Any existing Ender Link Cover networks may need manual reconfiguring.", t);
         }
     }
 
@@ -383,7 +385,9 @@ public class GuildEvents {
         }
         Guild g = mgr.createGuild(name, player.getUUID());
         send(player, "§aCreated Guild §f" + g.getName() + "§a.");
-        migrateGTCEuOwnership(player.getUUID(), g.getId());
+
+        migrateGTCEuOwnership(player, player.getUUID(), g.getId());
+
         syncToPlayer(player, mgr);
         broadcastAllGuildList(player.getServer(), mgr);
     }
@@ -417,7 +421,9 @@ public class GuildEvents {
         send(player, "§aAdded §f" + targetName + " §ato §f" + g.getName() + "§a.");
         target.sendSystemMessage(Component.literal(
                 "§aYou were added to guild §f" + g.getName() + " §aby §f" + player.getName().getString() + "§a."));
-        migrateGTCEuOwnership(target.getUUID(), g.getId());
+
+        migrateGTCEuOwnership(target, target.getUUID(), g.getId());
+
         syncToGuild(g, player.getServer(), mgr);
         broadcastAllGuildList(player.getServer(), mgr);
     }
@@ -892,24 +898,25 @@ public class GuildEvents {
     private static void pushFlagToOnlineMembers(Guild g, MinecraftServer server) {
         S2CGuildFlagPacket packet = new S2CGuildFlagPacket(g.getId(), g.getFlagIconId(), g.getFlagPixelData(),
                 g.isFlagUseDrawing(), g.getFlagWidth(), g.getFlagHeight());
-        for (ServerPlayer member : onlineMembers(g, server))
-            GuildNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> member), packet);
+
+        for (ServerPlayer member : onlineMembers(g, server)) {
+            PacketDistributor.sendToPlayer(member, packet);
+        }
     }
 
     private static boolean isValidFlagIcon(String iconId) {
         if (iconId == null || iconId.isBlank()) return true;
-        try {
-            if (iconId.startsWith("item:")) {
-                ResourceLocation id = new ResourceLocation(iconId.substring("item:".length()));
-                return ForgeRegistries.ITEMS.containsKey(id);
-            }
-            if (iconId.startsWith("block:")) {
-                ResourceLocation id = new ResourceLocation(iconId.substring("block:".length()));
-                return ForgeRegistries.BLOCKS.containsKey(id);
-            }
-        } catch (Exception ignored) {
-            return false;
+
+        if (iconId.startsWith("item:")) {
+            ResourceLocation id = ResourceLocation.tryParse(iconId.substring("item:".length()));
+            return id != null && BuiltInRegistries.ITEM.containsKey(id);
         }
+
+        if (iconId.startsWith("block:")) {
+            ResourceLocation id = ResourceLocation.tryParse(iconId.substring("block:".length()));
+            return id != null && BuiltInRegistries.BLOCK.containsKey(id);
+        }
+
         return false;
     }
 
@@ -990,7 +997,7 @@ public class GuildEvents {
     }
 
     private static int openGui(ServerPlayer player) {
-        GuildNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new S2COpenGuildScreenPacket());
+        PacketDistributor.sendToPlayer(player, new S2COpenGuildScreenPacket());
         return 1;
     }
 

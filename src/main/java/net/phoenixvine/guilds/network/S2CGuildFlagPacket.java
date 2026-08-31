@@ -1,68 +1,55 @@
 package net.phoenixvine.guilds.network;
 
-import net.minecraft.network.FriendlyByteBuf;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import net.phoenixvine.guilds.PhoenixGuilds;
 import net.phoenixvine.guilds.data.Guild;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
-public class S2CGuildFlagPacket {
+public record S2CGuildFlagPacket(
+        UUID guildId,
+        String flagIconId,
+        String flagPixelData,
+        boolean flagUseDrawing,
+        int flagWidth,
+        int flagHeight
+) implements CustomPacketPayload {
 
-    private final UUID guildId;
-    private final String flagIconId;
-    private final String flagPixelData;
-    private final boolean flagUseDrawing;
-    private final int flagWidth;
-    private final int flagHeight;
+    public static final Type<S2CGuildFlagPacket> TYPE =
+            new Type<>(ResourceLocation.fromNamespaceAndPath(PhoenixGuilds.MOD_ID, "guild_flag"));
 
-    public S2CGuildFlagPacket(UUID guildId, String flagIconId, String flagPixelData, boolean flagUseDrawing,
-                              int flagWidth, int flagHeight) {
-        this.guildId = guildId;
-        this.flagIconId = flagIconId;
-        this.flagPixelData = flagPixelData;
-        this.flagUseDrawing = flagUseDrawing;
-        this.flagWidth = flagWidth;
-        this.flagHeight = flagHeight;
+    public static final StreamCodec<ByteBuf, S2CGuildFlagPacket> STREAM_CODEC = StreamCodec.composite(
+            UUIDUtil.STREAM_CODEC,
+            S2CGuildFlagPacket::guildId,
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.ICON_ID_MAX),
+            S2CGuildFlagPacket::flagIconId,
+            ByteBufCodecs.stringUtf8(Guild.FLAG_PIXEL_DATA_LENGTH),
+            S2CGuildFlagPacket::flagPixelData,
+            ByteBufCodecs.BOOL,
+            S2CGuildFlagPacket::flagUseDrawing,
+            ByteBufCodecs.VAR_INT,
+            S2CGuildFlagPacket::flagWidth,
+            ByteBufCodecs.VAR_INT,
+            S2CGuildFlagPacket::flagHeight,
+            S2CGuildFlagPacket::new
+    );
+
+    @Override
+    public @NotNull Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    public S2CGuildFlagPacket(FriendlyByteBuf buf) {
-        this.guildId = buf.readUUID();
-        this.flagIconId = buf.readUtf(GuildNetworkLimits.ICON_ID_MAX);
-        this.flagPixelData = buf.readUtf(Guild.FLAG_PIXEL_DATA_LENGTH);
-        this.flagUseDrawing = buf.readBoolean();
-        this.flagWidth = buf.readVarInt();
-        this.flagHeight = buf.readVarInt();
-    }
-
-    public void encode(FriendlyByteBuf buf) {
-        buf.writeUUID(guildId);
-        buf.writeUtf(flagIconId, GuildNetworkLimits.ICON_ID_MAX);
-        buf.writeUtf(flagPixelData, Guild.FLAG_PIXEL_DATA_LENGTH);
-        buf.writeBoolean(flagUseDrawing);
-        buf.writeVarInt(flagWidth);
-        buf.writeVarInt(flagHeight);
-    }
-
-    public UUID getGuildId() {
-        return guildId;
-    }
-
-    public String getFlagIconId() {
-        return flagIconId;
-    }
-
-    public String getFlagPixelData() {
-        return flagPixelData;
-    }
-
-    public boolean isFlagUseDrawing() {
-        return flagUseDrawing;
-    }
-
-    public int getFlagWidth() {
-        return flagWidth;
-    }
-
-    public int getFlagHeight() {
-        return flagHeight;
+    public static void handle(final S2CGuildFlagPacket packet, final IPayloadContext context) {
+        context.enqueueWork(() -> {
+            
+            GuildPacketHandlerClient.handleClientFlagPacket(packet);
+        });
     }
 }

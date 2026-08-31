@@ -1,6 +1,5 @@
 package net.phoenixvine.guilds.client;
 
-import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -12,11 +11,13 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.util.StringUtil;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.phoenixvine.guilds.network.C2SGuildActionPacket;
-import net.phoenixvine.guilds.network.GuildNetwork;
 
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -30,8 +31,10 @@ public class WikiEditScreen extends Screen {
     private static final int MAX_CONTENT = 512;
     private static final int MAX_TITLE = 64;
 
-    private static final char[] COLOR_CODES = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
-            'e', 'f', 'r' };
+    private static final char[] COLOR_CODES = {
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'r'
+    };
+
     private static final int[] COLOR_VALUES = {
             0xFF000000, 0xFF0000AA, 0xFF00AA00, 0xFF00AAAA, 0xFFAA0000, 0xFFAA00AA, 0xFFFFAA00, 0xFFAAAAAA,
             0xFF555555, 0xFF5555FF, 0xFF55FF55, 0xFF55FFFF, 0xFFFF5555, 0xFFFF55FF, 0xFFFFFF55, 0xFFFFFFFF,
@@ -76,45 +79,61 @@ public class WikiEditScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float pt) {
+    public void renderBackground(GuiGraphics g, int mx, int my, float pt) {
+        
+        super.renderBackground(g, mx, my, pt);
+
         g.fill(0, 0, width, height, C_BG);
         g.fill(px, py, px + W, py + H, C_PANEL);
         g.fill(px, py, px + W, py + 1, C_ACCENT);
+    }
+
+    @Override
+    public void render(GuiGraphics g, int mx, int my, float pt) {
+        
+        super.render(g, mx, my, pt);
+
         g.drawCenteredString(font, getTitle(), px + W / 2, py + 7, C_ACCENT);
         g.drawString(font, "Title:", px + 8, py + 15, C_DIM, false);
 
-        super.render(g, mx, my, pt);
-
         renderColorPicker(g, mx, my);
+
         int btnY = py + H - 20;
         int half = W / 2 - 6;
-        drawBtn(g, mx, my, px + 4, btnY, half, 16, "Confirm", 0xFF0A3318, 0xFF105528);
-        drawBtn(g, mx, my, px + W / 2 + 2, btnY, half, 16, "Cancel", 0xFF330A0A, 0xFF551010);
+        drawBtn(g, mx, my, px + 4, btnY, half, "Confirm", 0xFF0A3318, 0xFF105528);
+        drawBtn(g, mx, my, px + W / 2 + 2, btnY, half, "Cancel", 0xFF330A0A, 0xFF551010);
     }
 
     private void renderColorPicker(GuiGraphics g, int mx, int my) {
         int pickerY = py + H - 40;
         g.drawString(font, "Colors:", px + 8, pickerY + 2, C_DIM, false);
+
         int boxX = px + 8 + font.width("Colors:") + 4;
         int sz = 11;
         int gap = 2;
+
         for (int i = 0; i < COLOR_CODES.length; i++) {
             int cx = boxX + i * (sz + gap);
             boolean hov = mx >= cx && mx < cx + sz && my >= pickerY && my < pickerY + sz;
+
             g.fill(cx, pickerY, cx + sz, pickerY + sz, COLOR_VALUES[i]);
             g.renderOutline(cx, pickerY, sz, sz, hov ? C_ACCENT : 0xFF333355);
-            if (hov) g.renderTooltip(font, Component.literal("§" + COLOR_CODES[i] + "§" + COLOR_CODES[i]), mx, my);
+
+            if (hov) {
+                g.renderTooltip(font, Component.literal("§" + COLOR_CODES[i] + "§" + COLOR_CODES[i]), mx, my);
+            }
         }
     }
 
-    private void drawBtn(GuiGraphics g, int mx, int my, int x, int y, int w, int h, String label, int col, int colHov) {
-        boolean hov = mx >= x && mx < x + w && my >= y && my < y + h;
-        g.fill(x, y, x + w, y + h, hov ? colHov : col);
+    private void drawBtn(GuiGraphics g, int mx, int my, int x, int y, int w, String label, int col, int colHov) {
+        boolean hov = mx >= x && mx < x + w && my >= y && my < y + 16;
+        g.fill(x, y, x + w, y + 16, hov ? colHov : col);
+
         if (hov) {
             g.fill(x, y, x + w, y + 1, C_ACCENT);
-            g.fill(x, y + h - 1, x + w, y + h, C_ACCENT);
+            g.fill(x, y + 16 - 1, x + w, y + 16, C_ACCENT);
         }
-        g.drawCenteredString(font, label, x + w / 2, y + (h - 8) / 2, hov ? C_ACCENT : C_TEXT);
+        g.drawCenteredString(font, label, x + w / 2, y + (16 - 8) / 2, hov ? C_ACCENT : C_TEXT);
     }
 
     @Override
@@ -123,11 +142,13 @@ public class WikiEditScreen extends Screen {
 
         int btnY = py + H - 20;
         int half = W / 2 - 6;
+
         if (mx >= px + 4 && mx < px + 4 + half && my >= btnY && my < btnY + 16) {
             confirm();
             return true;
         }
-        if (mx >= px + W / 2 + 2 && mx < px + W && my >= btnY && my < btnY + 16) {
+
+        if (mx >= px + (double) W / 2 + 2 && mx < px + W && my >= btnY && my < btnY + 16) {
             Minecraft.getInstance().setScreen(parent);
             return true;
         }
@@ -136,6 +157,7 @@ public class WikiEditScreen extends Screen {
         int boxX = px + 8 + font.width("Colors:") + 4;
         int sz = 11;
         int gap = 2;
+
         for (int i = 0; i < COLOR_CODES.length; i++) {
             int cx = boxX + i * (sz + gap);
             if (mx >= cx && mx < cx + sz && my >= pickerY && my < pickerY + sz) {
@@ -144,6 +166,7 @@ public class WikiEditScreen extends Screen {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -165,7 +188,7 @@ public class WikiEditScreen extends Screen {
         String content = contentArea != null ? contentArea.getValue() : "";
         if (title.isEmpty()) return;
 
-        GuildNetwork.CHANNEL.sendToServer(
+        PacketDistributor.sendToServer(
                 new C2SGuildActionPacket(C2SGuildActionPacket.Action.WIKI_SET, title + '' + content));
         Minecraft.getInstance().setScreen(parent);
     }
@@ -182,7 +205,7 @@ public class WikiEditScreen extends Screen {
 
         ContentArea(int x, int y, int w, int h) {
             super(x, y, w, h, Component.empty());
-            this.tf = new MultilineTextField(WikiEditScreen.this.font, w - 10);
+            this.tf = new MultilineTextField(font, w - 10);
             this.tf.setCharacterLimit(MAX_CONTENT);
         }
 
@@ -198,6 +221,7 @@ public class WikiEditScreen extends Screen {
             String full = tf.value();
             int cur = tf.cursor();
             String updated = full.substring(0, cur) + code + full.substring(cur);
+
             if (updated.length() <= MAX_CONTENT) {
                 tf.setValue(updated);
                 tf.seekCursor(Whence.ABSOLUTE, cur + code.length());
@@ -213,33 +237,43 @@ public class WikiEditScreen extends Screen {
             int ty = getY() + 5;
             String full = tf.value();
             int cur = tf.cursor();
+            int lh = font.lineHeight;
 
             lineCache.clear();
+
             if (full.isEmpty()) {
                 lineCache.add(new LinePos(0, 0, ""));
-                g.drawString(WikiEditScreen.this.font, "Write your wiki page here... (Shift+Enter for new line)", tx,
-                        ty, 0xFF2A2A4A, false);
+                g.drawString(font, "Write your wiki page here... (Shift+Enter for new line)", tx, ty, 0xFF2A2A4A, false);
             } else {
-                WikiEditScreen.this.font.getSplitter().splitLines(full, width - 10, Style.EMPTY, false,
+                font.getSplitter().splitLines(full, width - 10, Style.EMPTY, false,
                         (style, s, e) -> lineCache.add(new LinePos(s, e, full.substring(s, e))));
-                if (full.endsWith("\n"))
+                if (full.endsWith("\n")) {
                     lineCache.add(new LinePos(full.length(), full.length(), ""));
+                }
             }
 
             if (tf.hasSelection()) {
                 String sel = tf.getSelectedText();
-                int si = full.indexOf(sel);
-                if (si >= 0) {
-                    int se = si + sel.length();
+                int selStart = cur;
+                int selEnd = cur;
+
+                if (cur >= sel.length() && full.startsWith(sel, cur - sel.length())) {
+                    selStart = cur - sel.length();
+                } else {
+                    selEnd = cur + sel.length();
+                }
+
+                if (selStart != selEnd) {
                     for (int i = 0; i < lineCache.size(); i++) {
                         LinePos lp = lineCache.get(i);
-                        int ly = ty + i * 9;
-                        if (se > lp.start && si < lp.end) {
-                            int a = Math.max(si, lp.start) - lp.start;
-                            int b = Math.min(se, lp.end) - lp.start;
-                            int x1 = tx + WikiEditScreen.this.font.width(lp.text.substring(0, a));
-                            int x2 = tx + WikiEditScreen.this.font.width(lp.text.substring(0, b));
-                            g.fill(x1, ly, x2, ly + 9, 0xFF2244AA);
+                        int ly = ty + i * lh;
+
+                        if (selEnd > lp.start && selStart < lp.end) {
+                            int a = Math.max(selStart, lp.start) - lp.start;
+                            int b = Math.min(selEnd, lp.end) - lp.start;
+                            int x1 = tx + font.width(lp.text.substring(0, a));
+                            int x2 = tx + font.width(lp.text.substring(0, b));
+                            g.fill(x1, ly, x2, ly + lh, 0xFF2244AA);
                         }
                     }
                 }
@@ -247,50 +281,39 @@ public class WikiEditScreen extends Screen {
 
             for (int i = 0; i < lineCache.size(); i++) {
                 LinePos lp = lineCache.get(i);
-                int ly = ty + i * 9;
-                g.drawString(WikiEditScreen.this.font, lp.text, tx, ly, C_TEXT, false);
+                int ly = ty + i * lh;
+                g.drawString(font, lp.text, tx, ly, C_TEXT, false);
+
                 if (isFocused() && cur >= lp.start && cur <= lp.end && (System.currentTimeMillis() / 500) % 2 == 0) {
                     int off = Math.min(cur - lp.start, lp.text.length());
-                    int curX = tx + WikiEditScreen.this.font.width(lp.text.substring(0, off));
-                    g.fill(curX, ly, curX + 1, ly + 9, C_ACCENT);
+                    int curX = tx + font.width(lp.text.substring(0, off));
+                    g.fill(curX, ly, curX + 1, ly + lh, C_ACCENT);
                 }
             }
 
             String cc = tf.value().length() + "/" + MAX_CONTENT;
-            g.drawString(WikiEditScreen.this.font, cc,
-                    getX() + width - WikiEditScreen.this.font.width(cc) - 4, getY() + height - 10, C_DIM, false);
+            g.drawString(font, cc, getX() + width - font.width(cc) - 4, getY() + height - 10, C_DIM, false);
         }
 
         private int coordToIndex(double mx, double my) {
             if (lineCache.isEmpty()) return 0;
-            int row = Math.max(0, Math.min(lineCache.size() - 1, (int) ((my - (getY() + 5)) / 9)));
+
+            int row = Math.max(0, Math.min(lineCache.size() - 1, (int) ((my - (getY() + 5)) / font.lineHeight)));
             LinePos lp = lineCache.get(row);
             int local = (int) (mx - (getX() + 5));
             int off = 0;
-            int vw = 0;
+
             while (off < lp.text.length()) {
                 if (lp.text.charAt(off) == '§' && off + 1 < lp.text.length()) {
                     off += 2;
                     continue;
                 }
-                vw = WikiEditScreen.this.font.width(lp.text.substring(0, off + 1));
-                if (vw > local) break;
+                if (font.width(lp.text.substring(0, off + 1)) > local) {
+                    break;
+                }
                 off++;
             }
             return lp.start + off;
-        }
-
-        private void setCursorDirect(int pos) {
-            try {
-                java.lang.reflect.Field f;
-                try {
-                    f = MultilineTextField.class.getDeclaredField("cursor");
-                } catch (NoSuchFieldException e) {
-                    f = MultilineTextField.class.getDeclaredField("f_239201_");
-                }
-                f.setAccessible(true);
-                f.setInt(tf, pos);
-            } catch (Exception ignored) {}
         }
 
         @Override
@@ -307,7 +330,10 @@ public class WikiEditScreen extends Screen {
         @Override
         public boolean mouseDragged(double mx, double my, int btn, double dx, double dy) {
             if (isFocused() && btn == 0) {
-                setCursorDirect(coordToIndex(mx, my));
+
+                tf.setSelecting(true);
+                tf.seekCursor(Whence.ABSOLUTE, coordToIndex(mx, my));
+                tf.setSelecting(false);
                 return true;
             }
             return super.mouseDragged(mx, my, btn, dx, dy);
@@ -325,7 +351,7 @@ public class WikiEditScreen extends Screen {
 
         @Override
         public boolean charTyped(char c, int mod) {
-            if (isFocused() && SharedConstants.isAllowedChatCharacter(c)) {
+            if (isFocused() && StringUtil.isAllowedChatCharacter(c)) {
                 tf.insertText(Character.toString(c));
                 return true;
             }
@@ -333,7 +359,7 @@ public class WikiEditScreen extends Screen {
         }
 
         @Override
-        protected void updateWidgetNarration(NarrationElementOutput out) {}
+        protected void updateWidgetNarration(@NotNull NarrationElementOutput out) {}
 
         private record LinePos(int start, int end, String text) {}
     }

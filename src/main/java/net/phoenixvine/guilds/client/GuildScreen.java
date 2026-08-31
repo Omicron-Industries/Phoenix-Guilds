@@ -8,8 +8,9 @@ import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.phoenixvine.guilds.network.C2SGuildActionPacket;
 import net.phoenixvine.guilds.network.GuildNetwork;
 import net.phoenixvine.guilds.network.S2CGuildSyncPacket;
@@ -155,9 +156,19 @@ public class GuildScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float pt) {
+    public void renderBackground(GuiGraphics g, int mx, int my, float pt) {
+        
+        super.renderBackground(g, mx, my, pt);
+
         g.fill(0, 0, width, height, C_BG);
         drawFrame(g);
+    }
+
+    @Override
+    public void render(GuiGraphics g, int mx, int my, float pt) {
+        
+        super.render(g, mx, my, pt);
+
         drawTabs(g);
         inlineBtns = new ArrayList<>();
         switch (activeTab) {
@@ -167,7 +178,7 @@ public class GuildScreen extends Screen {
             case 3 -> renderLogTab(g);
             case 4 -> renderWikiTab(g, mx, my);
         }
-        super.render(g, mx, my, pt);
+
         for (InlineBtn b : inlineBtns) {
             boolean hover = mx >= b.x() && mx < b.x() + b.w() && my >= b.y() && my < b.y() + b.h();
             g.fill(b.x(), b.y(), b.x() + b.w(), b.y() + b.h(), hover ? b.colorHover() : b.colorNorm());
@@ -597,7 +608,7 @@ public class GuildScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mx, double my, double delta) {
+    public boolean mouseScrolled(double mx, double my, double scrollX, double scrollY) {
         int size = switch (activeTab) {
             case 0 -> ClientGuildCache.members.size();
             case 2 -> ClientGuildCache.allGuilds.size();
@@ -605,7 +616,7 @@ public class GuildScreen extends Screen {
             case 4 -> ClientGuildCache.wikiPages.size();
             default -> 0;
         };
-        scrollOff = (int) Math.max(0, Math.min(Math.max(0, size - 8), scrollOff - delta));
+        scrollOff = (int) Math.max(0, Math.min(Math.max(0, size - 8), scrollOff - scrollY));
         return true;
     }
 
@@ -614,7 +625,8 @@ public class GuildScreen extends Screen {
                 action != C2SGuildActionPacket.Action.DISBAND && action != C2SGuildActionPacket.Action.TOGGLE_FF &&
                 action != C2SGuildActionPacket.Action.HOME && action != C2SGuildActionPacket.Action.SET_HOME;
         if (needsArg && arg.isEmpty()) return;
-        GuildNetwork.CHANNEL.sendToServer(new C2SGuildActionPacket(action, arg));
+
+        PacketDistributor.sendToServer(new C2SGuildActionPacket(action, arg));
     }
 
     private EditBox box(int x, int y, int w, int h, String hint) {

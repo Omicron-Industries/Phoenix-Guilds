@@ -362,7 +362,7 @@ public class Guild {
         if (tag.contains("flagHeight")) g.flagHeight = tag.getInt("flagHeight");
 
         if (tag.contains("homeDim")) {
-            g.homeDimension = new ResourceLocation(tag.getString("homeDim"));
+            g.homeDimension = ResourceLocation.parse(tag.getString("homeDim"));
             g.homeX = tag.getDouble("homeX");
             g.homeY = tag.getDouble("homeY");
             g.homeZ = tag.getDouble("homeZ");

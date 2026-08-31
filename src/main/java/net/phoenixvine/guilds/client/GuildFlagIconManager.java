@@ -8,15 +8,16 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -32,11 +33,11 @@ public final class GuildFlagIconManager {
     private GuildFlagIconManager() {}
 
     public static String itemIconId(Item item) {
-        return ITEM_PREFIX + ForgeRegistries.ITEMS.getKey(item);
+        return ITEM_PREFIX + BuiltInRegistries.ITEM.getKey(item);
     }
 
     public static String blockIconId(Block block) {
-        return BLOCK_PREFIX + ForgeRegistries.BLOCKS.getKey(block);
+        return BLOCK_PREFIX + BuiltInRegistries.BLOCK.getKey(block);
     }
 
     public static String iconIdFor(Item item) {
@@ -50,14 +51,14 @@ public final class GuildFlagIconManager {
         if (iconId == null || iconId.isBlank()) return ItemStack.EMPTY;
         try {
             if (iconId.startsWith(ITEM_PREFIX)) {
-                ResourceLocation id = new ResourceLocation(iconId.substring(ITEM_PREFIX.length()));
-                Item item = ForgeRegistries.ITEMS.getValue(id);
-                return item == null ? ItemStack.EMPTY : new ItemStack(item);
+                ResourceLocation id = ResourceLocation.parse(iconId.substring(ITEM_PREFIX.length()));
+                Item item = BuiltInRegistries.ITEM.get(id);
+                return item == null || item == Items.AIR ? ItemStack.EMPTY : new ItemStack(item);
             }
             if (iconId.startsWith(BLOCK_PREFIX)) {
-                ResourceLocation id = new ResourceLocation(iconId.substring(BLOCK_PREFIX.length()));
-                Block block = ForgeRegistries.BLOCKS.getValue(id);
-                return block == null || block == net.minecraft.world.level.block.Blocks.AIR ? ItemStack.EMPTY :
+                ResourceLocation id = ResourceLocation.parse(iconId.substring(BLOCK_PREFIX.length()));
+                Block block = BuiltInRegistries.BLOCK.get(id);
+                return block == null || block == Blocks.AIR ? ItemStack.EMPTY :
                         new ItemStack(block);
             }
         } catch (Exception ignored) {
@@ -113,13 +114,32 @@ public final class GuildFlagIconManager {
         VertexConsumer vertexConsumer = buffer.getBuffer(RenderType.entityTranslucent(TextureAtlas.LOCATION_BLOCKS));
         float u0 = sprite.getU0(), u1 = sprite.getU1(), v0 = sprite.getV0(), v1 = sprite.getV1();
 
-        vertexConsumer.vertex(matrix, -0.5f, 0.5f, 0).color(r, g, b, 255).uv(u0, v0)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
-        vertexConsumer.vertex(matrix, 0.5f, 0.5f, 0).color(r, g, b, 255).uv(u1, v0)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
-        vertexConsumer.vertex(matrix, 0.5f, -0.5f, 0).color(r, g, b, 255).uv(u1, v1)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
-        vertexConsumer.vertex(matrix, -0.5f, -0.5f, 0).color(r, g, b, 255).uv(u0, v1)
-                .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
+        vertexConsumer.addVertex(matrix, -0.5f, 0.5f, 0f)
+                .setColor(r, g, b, 255)
+                .setUv(u0, v0)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(packedLight)
+                .setNormal(0, 0, 1);
+
+        vertexConsumer.addVertex(matrix, 0.5f, 0.5f, 0f)
+                .setColor(r, g, b, 255)
+                .setUv(u1, v0)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(packedLight)
+                .setNormal(0, 0, 1);
+
+        vertexConsumer.addVertex(matrix, 0.5f, -0.5f, 0f)
+                .setColor(r, g, b, 255)
+                .setUv(u1, v1)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(packedLight)
+                .setNormal(0, 0, 1);
+
+        vertexConsumer.addVertex(matrix, -0.5f, -0.5f, 0f)
+                .setColor(r, g, b, 255)
+                .setUv(u0, v1)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(packedLight)
+                .setNormal(0, 0, 1);
     }
 }

@@ -8,12 +8,14 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.phoenixvine.guilds.network.C2SSetGuildFlagPacket;
-import net.phoenixvine.guilds.network.GuildNetwork;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -51,7 +53,6 @@ public class GuildFlagEditorScreen extends Screen {
     private int cols, rows;
     private int paletteCell;
     private int paletteW;
-    private int leftColW;
     private int panelW, panelH;
     private int previewSize;
 
@@ -77,7 +78,6 @@ public class GuildFlagEditorScreen extends Screen {
     private int paletteX, paletteY;
     private int previewX, previewY;
     private int resLabelX, resLabelY;
-    private int rightColX;
 
     public GuildFlagEditorScreen(Screen parent) {
         this(parent, null);
@@ -124,6 +124,7 @@ public class GuildFlagEditorScreen extends Screen {
         }
         rightH += ROW_H;
 
+        int leftColW;
         if (mode == Mode.DRAWING) {
 
             cell = Mth.clamp(GRID_MAX / Math.max(cols, rows), 2, 16);
@@ -149,7 +150,7 @@ public class GuildFlagEditorScreen extends Screen {
 
         int contentTop = py + PAD + TITLE_H + ROW_GAP;
         int leftX = px + PAD;
-        rightColX = px + PAD + leftColW + COL_GAP;
+        int rightColX = px + PAD + leftColW + COL_GAP;
 
         if (mode == Mode.DRAWING) {
             gridX = leftX + (leftColW - gridW) / 2;
@@ -188,9 +189,7 @@ public class GuildFlagEditorScreen extends Screen {
                     b -> Arrays.fill(pixelColors, 0xFFFFFF)).bounds(rightColX, ry, RIGHT_COL_W, ROW_H).build());
         } else {
             addRenderableWidget(Button.builder(Component.literal("Choose Item/Block"),
-                    b -> Minecraft.getInstance().setScreen(new GuildFlagIconPickerScreen(this, iconId, picked -> {
-                        iconId = picked;
-                    })))
+                    b -> Minecraft.getInstance().setScreen(new GuildFlagIconPickerScreen(this, iconId, picked -> iconId = picked)))
                     .bounds(rightColX, ry, RIGHT_COL_W, ROW_H).build());
         }
         ry += ROW_H + ROW_GAP;
@@ -232,13 +231,23 @@ public class GuildFlagEditorScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float pt) {
+    public void renderBackground(GuiGraphics g, int mx, int my, float pt) {
+        
+        super.renderBackground(g, mx, my, pt);
+
         g.fill(0, 0, width, height, C_BG);
         g.fill(px, py, px + panelW, py + panelH, C_PANEL);
         g.fill(px, py, px + panelW, py + 1, C_BORDER);
         g.fill(px, py + panelH - 1, px + panelW, py + panelH, C_BORDER);
         g.fill(px, py, px + 1, py + panelH, C_BORDER);
         g.fill(px + panelW - 1, py, px + panelW, py + panelH, C_BORDER);
+    }
+
+    @Override
+    public void render(GuiGraphics g, int mx, int my, float pt) {
+        
+        super.render(g, mx, my, pt);
+
         g.drawCenteredString(font, "Guild Flag Editor", px + panelW / 2, py + PAD, C_ACCENT);
 
         if (mode == Mode.DRAWING) {
@@ -250,8 +259,6 @@ public class GuildFlagEditorScreen extends Screen {
 
         String resLabel = "Resolution: " + flagWidth + "×" + flagHeight;
         g.drawCenteredString(font, resLabel, resLabelX, resLabelY, C_DIM);
-
-        super.render(g, mx, my, pt);
     }
 
     private void renderDrawingGrid(GuiGraphics g) {
@@ -341,10 +348,18 @@ public class GuildFlagEditorScreen extends Screen {
     private void save() {
         StringBuilder sb = new StringBuilder(pixelColors.length * GuildFlagPixelArt.CHARS_PER_PIXEL);
         for (int color : pixelColors) sb.append(GuildFlagPixelArt.toHex6(color));
-        GuildNetwork.CHANNEL.sendToServer(
-                new C2SSetGuildFlagPacket(targetGuildId, mode == Mode.DRAWING, iconId, sb.toString(), flagWidth,
-                        flagHeight));
-        onClose();
+        PacketDistributor.sendToServer(
+                    new C2SSetGuildFlagPacket(
+                            Optional.ofNullable(targetGuildId), 
+                            mode == Mode.DRAWING,
+                            iconId,
+                            sb.toString(),
+                            flagWidth,
+                            flagHeight
+                    )
+            );
+
+            onClose();
     }
 
     @Override

@@ -1,63 +1,64 @@
 package net.phoenixvine.guilds.network;
 
-import net.minecraft.network.FriendlyByteBuf;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.data.GuildManager;
 import net.phoenixvine.guilds.event.GuildEvents;
 
+import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Supplier;
 
-import javax.annotation.Nullable;
+public record C2SSetGuildFlagPacket(
+        Optional<UUID> targetGuildId,
+        boolean useDrawing,
+        String iconId,
+        String pixelData,
+        int width,
+        int height
+) implements CustomPacketPayload {
 
-public class C2SSetGuildFlagPacket {
+    public static final Type<C2SSetGuildFlagPacket> TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath("phoenixvine_guilds", "set_guild_flag")
+    );
 
-    @Nullable
-    private final UUID targetGuildId;
-    private final boolean useDrawing;
-    private final String iconId;
-    private final String pixelData;
-    private final int width;
-    private final int height;
+    public static final StreamCodec<ByteBuf, C2SSetGuildFlagPacket> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.optional(UUIDUtil.STREAM_CODEC), C2SSetGuildFlagPacket::targetGuildId,
+            ByteBufCodecs.BOOL, C2SSetGuildFlagPacket::useDrawing,
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.ICON_ID_MAX), C2SSetGuildFlagPacket::iconId,
+            ByteBufCodecs.stringUtf8(Guild.FLAG_PIXEL_DATA_LENGTH), C2SSetGuildFlagPacket::pixelData,
+            ByteBufCodecs.VAR_INT, C2SSetGuildFlagPacket::width,
+            ByteBufCodecs.VAR_INT, C2SSetGuildFlagPacket::height,
+            C2SSetGuildFlagPacket::new
+    );
 
-    public C2SSetGuildFlagPacket(@Nullable UUID targetGuildId, boolean useDrawing, String iconId, String pixelData,
-                                 int width, int height) {
-        this.targetGuildId = targetGuildId;
-        this.useDrawing = useDrawing;
-        this.iconId = iconId;
-        this.pixelData = pixelData;
-        this.width = width;
-        this.height = height;
+    @Override
+    public Type<C2SSetGuildFlagPacket> type() {
+        return TYPE;
     }
 
-    public C2SSetGuildFlagPacket(FriendlyByteBuf buf) {
-        this.targetGuildId = buf.readBoolean() ? buf.readUUID() : null;
-        this.useDrawing = buf.readBoolean();
-        this.iconId = buf.readUtf(GuildNetworkLimits.ICON_ID_MAX);
-        this.pixelData = buf.readUtf(Guild.FLAG_PIXEL_DATA_LENGTH);
-        this.width = buf.readVarInt();
-        this.height = buf.readVarInt();
-    }
+    public static void handle(C2SSetGuildFlagPacket packet, IPayloadContext context) {
+        context.enqueueWork(() -> {
+            if (context.player() instanceof ServerPlayer player) {
+                GuildManager mgr = GuildManager.get(player.getServer().overworld());
 
-    public void encode(FriendlyByteBuf buf) {
-        buf.writeBoolean(targetGuildId != null);
-        if (targetGuildId != null) buf.writeUUID(targetGuildId);
-        buf.writeBoolean(useDrawing);
-        buf.writeUtf(iconId, GuildNetworkLimits.ICON_ID_MAX);
-        buf.writeUtf(pixelData, Guild.FLAG_PIXEL_DATA_LENGTH);
-        buf.writeVarInt(width);
-        buf.writeVarInt(height);
-    }
-
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ServerPlayer player = ctx.get().getSender();
-            if (player == null) return;
-            GuildManager mgr = GuildManager.get(player.getServer().overworld());
-            GuildEvents.handleSetFlag(player, mgr, targetGuildId, useDrawing, iconId, pixelData, width, height);
+                GuildEvents.handleSetFlag(
+                        player,
+                        mgr,
+                        packet.targetGuildId().orElse(null), 
+                        packet.useDrawing(),
+                        packet.iconId(),
+                        packet.pixelData(),
+                        packet.width(),
+                        packet.height()
+                );
+            }
         });
-        ctx.get().setPacketHandled(true);
     }
 }

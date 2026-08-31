@@ -1,11 +1,13 @@
 package net.phoenixvine.guilds.data;
 
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.phoenixvine.guilds.PhoenixGuilds;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -16,25 +18,31 @@ import java.util.UUID;
 public class GuildManager extends SavedData {
 
     private static final String SAVE_KEY = "phoenix_guilds";
-
     private static final int DATA_VERSION = 1;
 
     private final Map<UUID, Guild> guilds = new LinkedHashMap<>();
     private final Map<UUID, UUID> memberIndex = new LinkedHashMap<>();
 
+    public GuildManager() {}
+
     public static GuildManager get(ServerLevel overworld) {
         return overworld.getDataStorage().computeIfAbsent(
-                GuildManager::load, GuildManager::new, SAVE_KEY);
+                new SavedData.Factory<>(
+                        GuildManager::new,
+                        GuildManager::load,
+                        null
+                ),
+                SAVE_KEY
+        );
     }
 
-    private static GuildManager load(CompoundTag tag) {
+    public static GuildManager load(CompoundTag tag, HolderLookup.Provider registries) {
         GuildManager mgr = new GuildManager();
 
         int version = tag.contains("dataVersion") ? tag.getInt("dataVersion") : 0;
 
         ListTag list = tag.getList("guilds", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
-
             try {
                 Guild g = Guild.deserialize(list.getCompound(i));
                 mgr.guilds.put(g.getId(), g);
@@ -48,7 +56,7 @@ public class GuildManager extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public @NotNull CompoundTag save(@NotNull CompoundTag tag, @NotNull HolderLookup.Provider registries) {
         tag.putInt("dataVersion", DATA_VERSION);
         ListTag list = new ListTag();
         for (Guild g : guilds.values()) list.add(g.serialize());
@@ -132,7 +140,6 @@ public class GuildManager extends SavedData {
         GuildRank current = g.getRank(targetUUID);
         if (current == GuildRank.OWNER) return "already_owner";
         if (current == GuildRank.OFFICER) {
-
             g.setOwner(targetUUID);
         } else {
             g.getMemberRanks().put(targetUUID, GuildRank.OFFICER);

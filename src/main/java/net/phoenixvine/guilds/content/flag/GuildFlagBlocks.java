@@ -1,27 +1,27 @@
 package net.phoenixvine.guilds.content.flag;
 
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
 import net.phoenixvine.guilds.PhoenixGuilds;
 
 public final class GuildFlagBlocks {
 
-    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS,
-            PhoenixGuilds.MOD_ID);
-    private static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS,
-            PhoenixGuilds.MOD_ID);
+    private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(PhoenixGuilds.MOD_ID);
+    private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(PhoenixGuilds.MOD_ID);
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister
-            .create(ForgeRegistries.BLOCK_ENTITY_TYPES, PhoenixGuilds.MOD_ID);
+            .create(Registries.BLOCK_ENTITY_TYPE, PhoenixGuilds.MOD_ID);
 
-    public static final RegistryObject<Block> GUILD_FLAG = BLOCKS.register("guild_flag", GuildFlagBlock::new);
-    public static final RegistryObject<Item> GUILD_FLAG_ITEM = ITEMS.register("guild_flag",
+    public static final DeferredBlock<Block> GUILD_FLAG = BLOCKS.register("guild_flag", GuildFlagBlock::new);
+    public static final DeferredItem<Item> GUILD_FLAG_ITEM = ITEMS.register("guild_flag",
             () -> new GuildFlagBlockItem(GUILD_FLAG.get(), new Item.Properties()));
-    public static final RegistryObject<BlockEntityType<GuildFlagBlockEntity>> GUILD_FLAG_ENTITY = BLOCK_ENTITY_TYPES
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<GuildFlagBlockEntity>> GUILD_FLAG_ENTITY = BLOCK_ENTITY_TYPES
             .register("guild_flag",
                     () -> BlockEntityType.Builder.of(GuildFlagBlockEntity::new, GUILD_FLAG.get()).build(null));
 

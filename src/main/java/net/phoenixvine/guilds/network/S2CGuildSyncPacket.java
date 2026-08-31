@@ -1,269 +1,209 @@
 package net.phoenixvine.guilds.network;
 
+import io.netty.buffer.ByteBuf;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.phoenixvine.guilds.data.Guild;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Supplier;
 
-public class S2CGuildSyncPacket {
+public record S2CGuildSyncPacket(
+        String guildName,
+        UUID ownerUUID,
+        String motd,
+        String description,
+        boolean friendlyFire,
+        boolean homeSet,
+        String flagIconId,
+        String flagPixelData,
+        boolean flagUseDrawing,
+        int flagWidth,
+        int flagHeight,
+        List<MemberEntry> members,
+        List<AllyEntry> allies,
+        List<PendingEntry> pendingOutgoing,
+        List<PendingEntry> pendingIncoming,
+        List<LogEntry> logEntries,
+        List<WikiPage> wikiPages,
+        List<GuildSummary> allGuilds
+) implements CustomPacketPayload {
+
+    public static final Type<S2CGuildSyncPacket> TYPE = new Type<>(
+            ResourceLocation.fromNamespaceAndPath("phoenixvine_guilds", "guild_sync")
+    );
+
+    public static final StreamCodec<ByteBuf, MemberEntry> MEMBER_STREAM_CODEC = StreamCodec.composite(
+            UUIDUtil.STREAM_CODEC, MemberEntry::uuid,
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.MEMBER_NAME_MAX), MemberEntry::name,
+            ByteBufCodecs.BOOL, MemberEntry::isOnline,
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.RANK_MAX), MemberEntry::rank,
+            MemberEntry::new
+    );
+
+    public static final StreamCodec<ByteBuf, GuildSummary> GUILD_SUMMARY_STREAM_CODEC = StreamCodec.composite(
+            UUIDUtil.STREAM_CODEC, GuildSummary::id,
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.NAME_MAX), GuildSummary::name,
+            ByteBufCodecs.VAR_INT, GuildSummary::memberCount,
+            ByteBufCodecs.VAR_INT, GuildSummary::onlineCount,
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.DESCRIPTION_MAX), GuildSummary::description,
+            GuildSummary::new
+    );
+
+    public static final StreamCodec<ByteBuf, AllyEntry> ALLY_STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.NAME_MAX), AllyEntry::name,
+            ByteBufCodecs.VAR_INT, AllyEntry::memberCount,
+            ByteBufCodecs.VAR_INT, AllyEntry::onlineCount,
+            AllyEntry::new
+    );
+
+    public static final StreamCodec<ByteBuf, PendingEntry> PENDING_STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.NAME_MAX), PendingEntry::guildName,
+            PendingEntry::new
+    );
+
+    public static final StreamCodec<ByteBuf, LogEntry> LOG_STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_LONG, LogEntry::timestamp,
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.LOG_MESSAGE_MAX), LogEntry::message,
+            LogEntry::new
+    );
+
+    public static final StreamCodec<ByteBuf, WikiPage> WIKI_STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.WIKI_TITLE_MAX), WikiPage::title,
+            ByteBufCodecs.stringUtf8(GuildNetworkLimits.WIKI_CONTENT_MAX), WikiPage::content,
+            WikiPage::new
+    );
+
+    public static final StreamCodec<ByteBuf, S2CGuildSyncPacket> STREAM_CODEC = StreamCodec.of(
+            (buf, packet) -> {
+                FriendlyByteBuf fbuf = new FriendlyByteBuf(buf);
+                boolean inGuild = packet.guildName != null;
+                fbuf.writeBoolean(inGuild);
+                if (inGuild) {
+                    fbuf.writeUtf(packet.guildName, GuildNetworkLimits.NAME_MAX);
+                    fbuf.writeUUID(packet.ownerUUID);
+                    fbuf.writeUtf(packet.motd, GuildNetworkLimits.MOTD_MAX);
+                    fbuf.writeUtf(packet.description, GuildNetworkLimits.DESCRIPTION_MAX);
+                    fbuf.writeBoolean(packet.friendlyFire);
+                    fbuf.writeBoolean(packet.homeSet);
+                    fbuf.writeUtf(packet.flagIconId, GuildNetworkLimits.ICON_ID_MAX);
+                    fbuf.writeUtf(packet.flagPixelData, Guild.FLAG_PIXEL_DATA_LENGTH);
+                    fbuf.writeBoolean(packet.flagUseDrawing);
+                    fbuf.writeVarInt(packet.flagWidth);
+                    fbuf.writeVarInt(packet.flagHeight);
+
+                    writeList(fbuf, packet.members, MEMBER_STREAM_CODEC);
+                    writeList(fbuf, packet.allies, ALLY_STREAM_CODEC);
+                    writeList(fbuf, packet.pendingOutgoing, PENDING_STREAM_CODEC);
+                    writeList(fbuf, packet.pendingIncoming, PENDING_STREAM_CODEC);
+                    writeList(fbuf, packet.logEntries, LOG_STREAM_CODEC);
+                    writeList(fbuf, packet.wikiPages, WIKI_STREAM_CODEC);
+                }
+                writeList(fbuf, packet.allGuilds, GUILD_SUMMARY_STREAM_CODEC);
+            },
+            buf -> {
+                FriendlyByteBuf fbuf = new FriendlyByteBuf(buf);
+                boolean inGuild = fbuf.readBoolean();
+                String gName;
+                UUID oUUID;
+                String m;
+                String desc;
+                boolean fFire;
+                boolean hSet;
+                String fIconId;
+                String fPixelData;
+                boolean fUseDrawing;
+                int fWidth;
+                int fHeight;
+                List<MemberEntry> mems;
+                List<AllyEntry> aEntries;
+                List<PendingEntry> pOut;
+                List<PendingEntry> pIn;
+                List<LogEntry> lEntries;
+                List<WikiPage> wPages;
+
+                if (inGuild) {
+                    gName = fbuf.readUtf(GuildNetworkLimits.NAME_MAX);
+                    oUUID = fbuf.readUUID();
+                    m = fbuf.readUtf(GuildNetworkLimits.MOTD_MAX);
+                    desc = fbuf.readUtf(GuildNetworkLimits.DESCRIPTION_MAX);
+                    fFire = fbuf.readBoolean();
+                    hSet = fbuf.readBoolean();
+                    fIconId = fbuf.readUtf(GuildNetworkLimits.ICON_ID_MAX);
+                    fPixelData = fbuf.readUtf(Guild.FLAG_PIXEL_DATA_LENGTH);
+                    fUseDrawing = fbuf.readBoolean();
+                    fWidth = fbuf.readVarInt();
+                    fHeight = fbuf.readVarInt();
+                    mems = readList(fbuf, MEMBER_STREAM_CODEC);
+                    aEntries = readList(fbuf, ALLY_STREAM_CODEC);
+                    pOut = readList(fbuf, PENDING_STREAM_CODEC);
+                    pIn = readList(fbuf, PENDING_STREAM_CODEC);
+                    lEntries = readList(fbuf, LOG_STREAM_CODEC);
+                    wPages = readList(fbuf, WIKI_STREAM_CODEC);
+                } else {
+                    gName = null;
+                    oUUID = null;
+                    m = "";
+                    desc = "";
+                    fFire = false;
+                    hSet = false;
+                    fIconId = "";
+                    fPixelData = "0".repeat(Guild.FLAG_PIXEL_DATA_LENGTH);
+                    fUseDrawing = false;
+                    fWidth = 16;
+                    fHeight = 16;
+                    mems = List.of();
+                    aEntries = List.of();
+                    pOut = List.of();
+                    pIn = List.of();
+                    lEntries = List.of();
+                    wPages = List.of();
+                }
+                List<GuildSummary> allG = readList(fbuf, GUILD_SUMMARY_STREAM_CODEC);
+
+                return new S2CGuildSyncPacket(
+                        gName, oUUID, m, desc, fFire, hSet, fIconId, fPixelData,
+                        fUseDrawing, fWidth, fHeight, mems, aEntries, pOut, pIn,
+                        lEntries, wPages, allG
+                );
+            }
+    );
+
+    @Override
+    public @NotNull Type<S2CGuildSyncPacket> type() {
+        return TYPE;
+    }
+
+    public static void handle(S2CGuildSyncPacket packet, IPayloadContext context) {
+        context.enqueueWork(() -> net.phoenixvine.guilds.client.ClientGuildCache.handleSyncPacket(packet));
+    }
+
+    private static <T> void writeList(FriendlyByteBuf buf, List<T> list, StreamCodec<ByteBuf, T> codec) {
+        buf.writeVarInt(list.size());
+        for (T item : list) {
+            codec.encode(buf, item);
+        }
+    }
+
+    private static <T> List<T> readList(FriendlyByteBuf buf, StreamCodec<ByteBuf, T> codec) {
+        int size = buf.readVarInt();
+        List<T> list = new java.util.ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            list.add(codec.decode(buf));
+        }
+        return list;
+    }
 
     public record MemberEntry(UUID uuid, String name, boolean isOnline, String rank) {}
-
     public record GuildSummary(UUID id, String name, int memberCount, int onlineCount, String description) {}
-
     public record AllyEntry(String name, int memberCount, int onlineCount) {}
-
     public record PendingEntry(String guildName) {}
-
     public record LogEntry(long timestamp, String message) {}
-
     public record WikiPage(String title, String content) {}
-
-    private final String guildName;
-    private final UUID ownerUUID;
-    private final String motd;
-    private final String description;
-    private final boolean friendlyFire;
-    private final boolean homeSet;
-    private final String flagIconId;
-    private final String flagPixelData;
-    private final boolean flagUseDrawing;
-    private final int flagWidth;
-    private final int flagHeight;
-    private final List<MemberEntry> members;
-    private final List<AllyEntry> allies;
-    private final List<PendingEntry> pendingOutgoing;
-    private final List<PendingEntry> pendingIncoming;
-    private final List<LogEntry> logEntries;
-    private final List<WikiPage> wikiPages;
-    private final List<GuildSummary> allGuilds;
-
-    public S2CGuildSyncPacket(String guildName, UUID ownerUUID, String motd, String description,
-                              boolean friendlyFire, boolean homeSet, String flagIconId, String flagPixelData,
-                              boolean flagUseDrawing, int flagWidth, int flagHeight, List<MemberEntry> members,
-                              List<AllyEntry> allies, List<PendingEntry> pendingOutgoing,
-                              List<PendingEntry> pendingIncoming, List<LogEntry> logEntries,
-                              List<WikiPage> wikiPages, List<GuildSummary> allGuilds) {
-        this.guildName = guildName;
-        this.ownerUUID = ownerUUID;
-        this.motd = motd;
-        this.description = description;
-        this.friendlyFire = friendlyFire;
-        this.homeSet = homeSet;
-        this.flagIconId = flagIconId;
-        this.flagPixelData = flagPixelData;
-        this.flagUseDrawing = flagUseDrawing;
-        this.flagWidth = flagWidth;
-        this.flagHeight = flagHeight;
-        this.members = members;
-        this.allies = allies;
-        this.pendingOutgoing = pendingOutgoing;
-        this.pendingIncoming = pendingIncoming;
-        this.logEntries = logEntries;
-        this.wikiPages = wikiPages;
-        this.allGuilds = allGuilds;
-    }
-
-    public S2CGuildSyncPacket(FriendlyByteBuf buf) {
-        boolean inGuild = buf.readBoolean();
-        if (inGuild) {
-            this.guildName = buf.readUtf(GuildNetworkLimits.NAME_MAX);
-            this.ownerUUID = buf.readUUID();
-            this.motd = buf.readUtf(GuildNetworkLimits.MOTD_MAX);
-            this.description = buf.readUtf(GuildNetworkLimits.DESCRIPTION_MAX);
-            this.friendlyFire = buf.readBoolean();
-            this.homeSet = buf.readBoolean();
-            this.flagIconId = buf.readUtf(GuildNetworkLimits.ICON_ID_MAX);
-            this.flagPixelData = buf.readUtf(Guild.FLAG_PIXEL_DATA_LENGTH);
-            this.flagUseDrawing = buf.readBoolean();
-            this.flagWidth = buf.readVarInt();
-            this.flagHeight = buf.readVarInt();
-            this.members = readList(buf, b -> new MemberEntry(b.readUUID(),
-                    b.readUtf(GuildNetworkLimits.MEMBER_NAME_MAX), b.readBoolean(),
-                    b.readUtf(GuildNetworkLimits.RANK_MAX)));
-            this.allies = readList(buf, b -> new AllyEntry(b.readUtf(GuildNetworkLimits.NAME_MAX), b.readVarInt(),
-                    b.readVarInt()));
-            this.pendingOutgoing = readList(buf, b -> new PendingEntry(b.readUtf(GuildNetworkLimits.NAME_MAX)));
-            this.pendingIncoming = readList(buf, b -> new PendingEntry(b.readUtf(GuildNetworkLimits.NAME_MAX)));
-            this.logEntries = readList(buf,
-                    b -> new LogEntry(b.readLong(), b.readUtf(GuildNetworkLimits.LOG_MESSAGE_MAX)));
-            this.wikiPages = readList(buf, b -> new WikiPage(b.readUtf(GuildNetworkLimits.WIKI_TITLE_MAX),
-                    b.readUtf(GuildNetworkLimits.WIKI_CONTENT_MAX)));
-        } else {
-            this.guildName = null;
-            this.ownerUUID = null;
-            this.motd = "";
-            this.description = "";
-            this.friendlyFire = false;
-            this.homeSet = false;
-            this.flagIconId = "";
-            this.flagPixelData = "0".repeat(Guild.FLAG_PIXEL_DATA_LENGTH);
-            this.flagUseDrawing = false;
-            this.flagWidth = 16;
-            this.flagHeight = 16;
-            this.members = List.of();
-            this.allies = List.of();
-            this.pendingOutgoing = List.of();
-            this.pendingIncoming = List.of();
-            this.logEntries = List.of();
-            this.wikiPages = List.of();
-        }
-        this.allGuilds = readList(buf,
-                b -> new GuildSummary(b.readUUID(), b.readUtf(GuildNetworkLimits.NAME_MAX), b.readVarInt(),
-                        b.readVarInt(), b.readUtf(GuildNetworkLimits.DESCRIPTION_MAX)));
-    }
-
-    public void encode(FriendlyByteBuf buf) {
-        boolean inGuild = guildName != null;
-        buf.writeBoolean(inGuild);
-        if (inGuild) {
-            buf.writeUtf(guildName, GuildNetworkLimits.NAME_MAX);
-            buf.writeUUID(ownerUUID);
-            buf.writeUtf(motd, GuildNetworkLimits.MOTD_MAX);
-            buf.writeUtf(description, GuildNetworkLimits.DESCRIPTION_MAX);
-            buf.writeBoolean(friendlyFire);
-            buf.writeBoolean(homeSet);
-            buf.writeUtf(flagIconId, GuildNetworkLimits.ICON_ID_MAX);
-            buf.writeUtf(flagPixelData, Guild.FLAG_PIXEL_DATA_LENGTH);
-            buf.writeBoolean(flagUseDrawing);
-            buf.writeVarInt(flagWidth);
-            buf.writeVarInt(flagHeight);
-            writeList(buf, members, (b, m) -> {
-                b.writeUUID(m.uuid());
-                b.writeUtf(m.name(), GuildNetworkLimits.MEMBER_NAME_MAX);
-                b.writeBoolean(m.isOnline());
-                b.writeUtf(m.rank(), GuildNetworkLimits.RANK_MAX);
-            });
-            writeList(buf, allies, (b, a) -> {
-                b.writeUtf(a.name(), GuildNetworkLimits.NAME_MAX);
-                b.writeVarInt(a.memberCount());
-                b.writeVarInt(a.onlineCount());
-            });
-            writeList(buf, pendingOutgoing, (b, p) -> b.writeUtf(p.guildName(), GuildNetworkLimits.NAME_MAX));
-            writeList(buf, pendingIncoming, (b, p) -> b.writeUtf(p.guildName(), GuildNetworkLimits.NAME_MAX));
-            writeList(buf, logEntries, (b, l) -> {
-                b.writeLong(l.timestamp());
-                b.writeUtf(l.message(), GuildNetworkLimits.LOG_MESSAGE_MAX);
-            });
-            writeList(buf, wikiPages, (b, w) -> {
-                b.writeUtf(w.title(), GuildNetworkLimits.WIKI_TITLE_MAX);
-                b.writeUtf(w.content(), GuildNetworkLimits.WIKI_CONTENT_MAX);
-            });
-        }
-        writeList(buf, allGuilds, (b, g) -> {
-            b.writeUUID(g.id());
-            b.writeUtf(g.name(), GuildNetworkLimits.NAME_MAX);
-            b.writeVarInt(g.memberCount());
-            b.writeVarInt(g.onlineCount());
-            b.writeUtf(g.description(), GuildNetworkLimits.DESCRIPTION_MAX);
-        });
-    }
-
-    public void handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> net.phoenixvine.guilds.client.ClientGuildCache.handleSyncPacket(this)));
-        ctx.get().setPacketHandled(true);
-    }
-
-    public String getGuildName() {
-        return guildName;
-    }
-
-    public UUID getOwnerUUID() {
-        return ownerUUID;
-    }
-
-    public String getMotd() {
-        return motd;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public boolean isFriendlyFire() {
-        return friendlyFire;
-    }
-
-    public boolean isHomeSet() {
-        return homeSet;
-    }
-
-    public String getFlagIconId() {
-        return flagIconId;
-    }
-
-    public String getFlagPixelData() {
-        return flagPixelData;
-    }
-
-    public boolean isFlagUseDrawing() {
-        return flagUseDrawing;
-    }
-
-    public int getFlagWidth() {
-        return flagWidth;
-    }
-
-    public int getFlagHeight() {
-        return flagHeight;
-    }
-
-    public List<MemberEntry> getMembers() {
-        return members;
-    }
-
-    public List<AllyEntry> getAllies() {
-        return allies;
-    }
-
-    public List<PendingEntry> getPendingOutgoing() {
-        return pendingOutgoing;
-    }
-
-    public List<PendingEntry> getPendingIncoming() {
-        return pendingIncoming;
-    }
-
-    public List<LogEntry> getLogEntries() {
-        return logEntries;
-    }
-
-    public List<WikiPage> getWikiPages() {
-        return wikiPages;
-    }
-
-    public List<GuildSummary> getAllGuilds() {
-        return allGuilds;
-    }
-
-    @FunctionalInterface
-    private interface ElemReader<T> {
-
-        T read(FriendlyByteBuf b);
-    }
-
-    @FunctionalInterface
-    private interface ElemWriter<T> {
-
-        void write(FriendlyByteBuf b, T t);
-    }
-
-    private static <T> List<T> readList(FriendlyByteBuf buf, ElemReader<T> r) {
-        int n = buf.readVarInt();
-        List<T> out = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) out.add(r.read(buf));
-        return out;
-    }
-
-    private static <T> void writeList(FriendlyByteBuf buf, List<T> list, ElemWriter<T> w) {
-        buf.writeVarInt(list.size());
-        for (T t : list) w.write(buf, t);
-    }
 }

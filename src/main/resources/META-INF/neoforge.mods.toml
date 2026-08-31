@@ -1,0 +1,44 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "${mod_license}"
+
+# This is a URL to your GitHub or CurseForge issues page.
+# It will appear in any crash reports this mod is directly involved in.
+# issueTrackerURL="https://github.com/invalid/pleasechangeme/issues" #optional
+
+[[mods]]
+modId = "${mod_id}"
+version = "${version}"
+displayName = "${mod_name}"
+displayURL = "${mod_url}"
+# logoFile="icon.png" #optional
+# credits="Thanks to Mojang for making this great game" #optional
+authors = "${mod_author}"
+description = '''
+Example Description
+...ain is there anyone who loves or pursues or desires to obtain pain of itself, because it is pain,... (Lorem Ipsum translated to english.)
+'''
+
+# NeoForge loader dependency (changed from "forge" to "neoforge")
+[[dependencies.${mod_id}]]
+modId = "neoforge"
+mandatory = true
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+# Minecraft version dependency for 1.21.1
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "BOTH"
+
+# Optional dependency (e.g., GTCEu if applicable)
+[[dependencies.${mod_id}]]
+modId = "gtceu"
+mandatory = false
+versionRange = "[${gtceu_version},)"
+ordering = "AFTER"
+side = "BOTH"

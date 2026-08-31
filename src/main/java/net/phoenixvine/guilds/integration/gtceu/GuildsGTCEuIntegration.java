@@ -1,6 +1,6 @@
 package net.phoenixvine.guilds.integration.gtceu;
 
-import net.minecraftforge.fml.ModList;
+import net.neoforged.fml.ModList;
 
 public final class GuildsGTCEuIntegration {
 
