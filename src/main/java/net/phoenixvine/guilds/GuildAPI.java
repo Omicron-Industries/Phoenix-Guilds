@@ -138,12 +138,6 @@ public final class GuildAPI {
         return resolvePlayerName(guildOrPlayerToken);
     }
 
-    /**
-     * Resolves a player UUID to their username via the server's online player list, falling back
-     * to the persistent profile cache (usernames.json) for offline players who have joined before.
-     * Falls back to a short UUID snippet only if neither source has the name (e.g. the player has
-     * never joined this server).
-     */
     private static String resolvePlayerName(UUID playerUUID) {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server != null) {

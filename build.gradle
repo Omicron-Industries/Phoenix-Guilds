@@ -129,6 +129,9 @@ apply from: "$rootDir/gradle/scripts/spotless.gradle"
 
 dependencies {
 
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
     compileOnly("org.jetbrains:annotations:26.0.1")
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
@@ -155,6 +158,17 @@ dependencies {
 }
 
 
+
+sourceSets {
+    test {
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
 
 tasks.named('processResources', ProcessResources).configure {
     var properties = [
