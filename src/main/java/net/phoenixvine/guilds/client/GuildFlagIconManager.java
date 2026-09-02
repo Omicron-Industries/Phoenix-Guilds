@@ -87,13 +87,13 @@ public final class GuildFlagIconManager {
         ItemStack stack = resolveIcon(iconId);
         if (stack.isEmpty()) return;
 
-        if (iconId != null && iconId.startsWith(BLOCK_PREFIX)) {
+        if ((iconId != null && iconId.startsWith(BLOCK_PREFIX))
+                || (stack.getItem() instanceof BlockItem)) {
             renderFlatSprite(stack, poseStack, buffer, packedLight, level);
             return;
         }
 
         poseStack.pushPose();
-
         poseStack.scale(-1f, 1f, ITEM_DEPTH_SCALE);
         Minecraft.getInstance().getItemRenderer().renderStatic(stack, ItemDisplayContext.GUI, packedLight,
                 packedOverlay, poseStack, buffer, level, 0);
