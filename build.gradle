@@ -63,6 +63,10 @@ repositories {
 		url = "https://maven.terraformersmc.com/"
 	}
     maven {
+        name = "Repsy"
+        url = uri("https://repo.repsy.io/mvn/user75142941/phoenixsuite")
+    }
+    maven {
         url = "https://thedarkcolour.github.io/KotlinForForge/"
     }
     flatDir {
@@ -215,4 +219,26 @@ tasks.register('publishToSolaris', Copy) {
         exclude '*-sources.jar'
     }
     into '../Solaris/libs'
+}
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            groupId = project.group
+            artifactId = base.archivesName.get()
+            version = project.version
+            artifact(tasks.named('jar').flatMap { it.archiveFile }) {
+                builtBy tasks.named('reobfJar')
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "Repsy"
+            url = uri("https://repo.repsy.io/mvn/user75142941/phoenixsuite")
+            credentials {
+                username = project.findProperty("repsyUsername") ?: System.getenv("REPSY_USERNAME")
+                password = project.findProperty("repsyPassword") ?: System.getenv("REPSY_PASSWORD")
+            }
+        }
+    }
 }
