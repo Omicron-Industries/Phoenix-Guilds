@@ -24,8 +24,8 @@ public class PhoenixGuilds {
     public static final String MOD_ID = "phoenix_guilds";
     public static final Logger LOGGER = LogManager.getLogger();
 
-    public PhoenixGuilds() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+    public PhoenixGuilds(FMLJavaModLoadingContext context) {
+        IEventBus modEventBus = context.getModEventBus();
 
         GuildFlagBlocks.register(modEventBus);
 
@@ -37,7 +37,7 @@ public class PhoenixGuilds {
             try {
                 modEventBus.register(GuildOwnerTypeRegistrar.class);
             } catch (Throwable t) {
-                LOGGER.error("GregTech-Modern is present but its integration failed to register/ Machine" +
+                LOGGER.error("GregTech-Modern is present but its integration failed to register. Machine" +
                         " ownership won't be guild-aware this session.", t);
             }
         }
@@ -46,7 +46,7 @@ public class PhoenixGuilds {
     }
 
     public static ResourceLocation id(String path) {
-        return new ResourceLocation(MOD_ID, path);
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {

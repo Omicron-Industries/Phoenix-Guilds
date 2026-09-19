@@ -7,6 +7,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.phoenixvine.guilds.PhoenixGuilds;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,7 +32,9 @@ public class GuildManager extends SavedData {
     private static GuildManager load(CompoundTag tag) {
         GuildManager mgr = new GuildManager();
 
-        int version = tag.contains("dataVersion") ? tag.getInt("dataVersion") : 0;
+        if (tag.contains("dataVersion")) {
+            tag.getInt("dataVersion");
+        }
 
         ListTag list = tag.getList("guilds", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
@@ -48,7 +52,7 @@ public class GuildManager extends SavedData {
     }
 
     @Override
-    public CompoundTag save(CompoundTag tag) {
+    public @NotNull CompoundTag save(CompoundTag tag) {
         tag.putInt("dataVersion", DATA_VERSION);
         ListTag list = new ListTag();
         for (Guild g : guilds.values()) list.add(g.serialize());
@@ -57,8 +61,8 @@ public class GuildManager extends SavedData {
     }
 
     public Optional<Guild> getGuildFor(UUID playerUUID) {
-        UUID gid = memberIndex.get(playerUUID);
-        return gid == null ? Optional.empty() : Optional.ofNullable(guilds.get(gid));
+        var guildID = memberIndex.get(playerUUID);
+        return guildID == null ? Optional.empty() : Optional.ofNullable(guilds.get(guildID));
     }
 
     public Optional<Guild> getGuildById(UUID guildId) {
@@ -78,45 +82,43 @@ public class GuildManager extends SavedData {
     }
 
     public Guild createGuild(String name, UUID ownerUUID) {
-        Guild g = new Guild(UUID.randomUUID(), name, ownerUUID);
-        guilds.put(g.getId(), g);
-        memberIndex.put(ownerUUID, g.getId());
-        g.addLog(ownerUUID + " founded the Guild.");
+        Guild guild = new Guild(UUID.randomUUID(), name, ownerUUID);
+        guilds.put(guild.getId(), guild);
+        memberIndex.put(ownerUUID, guild.getId());
+        guild.addLog(ownerUUID + " founded the Guild.");
         setDirty();
-        return g;
+        return guild;
     }
 
-    public boolean addMember(UUID guildId, UUID playerUUID) {
-        Guild g = guilds.get(guildId);
-        if (g == null || memberIndex.containsKey(playerUUID) || g.isFull()) return false;
-        g.addMember(playerUUID);
+    public void addMember(UUID guildId, UUID playerUUID) {
+        Guild guild = guilds.get(guildId);
+        if (guild == null || memberIndex.containsKey(playerUUID) || guild.isFull()) return;
+        guild.addMember(playerUUID);
         memberIndex.put(playerUUID, guildId);
         setDirty();
-        return true;
     }
 
-    public boolean removeMember(UUID guildId, UUID playerUUID) {
-        Guild g = guilds.get(guildId);
-        if (g == null || !g.isMember(playerUUID)) return false;
-        g.removeMember(playerUUID);
+    public void removeMember(UUID guildId, UUID playerUUID) {
+        Guild guild = guilds.get(guildId);
+        if (guild == null || !guild.isMember(playerUUID)) return;
+        guild.removeMember(playerUUID);
         memberIndex.remove(playerUUID);
-        if (playerUUID.equals(g.getOwner())) {
-            Optional<UUID> next = g.getMembers().stream().findFirst();
+        if (playerUUID.equals(guild.getOwner())) {
+            Optional<UUID> next = guild.getMembers().stream().findFirst();
             if (next.isPresent()) {
-                g.setOwner(next.get());
+                guild.setOwner(next.get());
             } else {
                 disbandGuild(guildId);
-                return true;
+                return;
             }
         }
         setDirty();
-        return true;
     }
 
     public void disbandGuild(UUID guildId) {
-        Guild g = guilds.remove(guildId);
-        if (g == null) return;
-        g.getMembers().forEach(memberIndex::remove);
+        Guild guild = guilds.remove(guildId);
+        if (guild == null) return;
+        guild.getMembers().forEach(memberIndex::remove);
         for (Guild other : guilds.values()) {
             other.removeAlly(guildId);
             other.removePendingOutgoing(guildId);
@@ -125,41 +127,40 @@ public class GuildManager extends SavedData {
     }
 
     public String promotePlayer(UUID guildId, UUID promoterUUID, UUID targetUUID) {
-        Guild g = guilds.get(guildId);
-        if (g == null) return "not_in_guild";
-        if (!g.hasRank(promoterUUID, GuildRank.OWNER)) return "no_permission";
-        if (!g.isMember(targetUUID)) return "not_member";
-        GuildRank current = g.getRank(targetUUID);
+        Guild guild = guilds.get(guildId);
+        if (guild == null) return "not_in_guild";
+        if (!guild.hasRank(promoterUUID, GuildRank.OWNER)) return "no_permission";
+        if (!guild.isMember(targetUUID)) return "not_member";
+        GuildRank current = guild.getRank(targetUUID);
         if (current == GuildRank.OWNER) return "already_owner";
         if (current == GuildRank.OFFICER) {
-
-            g.setOwner(targetUUID);
+            guild.setOwner(targetUUID);
         } else {
-            g.getMemberRanks().put(targetUUID, GuildRank.OFFICER);
+            guild.getMemberRanks().put(targetUUID, GuildRank.OFFICER);
         }
         setDirty();
         return "ok";
     }
 
     public String demotePlayer(UUID guildId, UUID demoterUUID, UUID targetUUID) {
-        Guild g = guilds.get(guildId);
-        if (g == null) return "not_in_guild";
-        if (!g.hasRank(demoterUUID, GuildRank.OWNER)) return "no_permission";
-        if (!g.isMember(targetUUID)) return "not_member";
-        GuildRank current = g.getRank(targetUUID);
+        Guild guild = guilds.get(guildId);
+        if (guild == null) return "not_in_guild";
+        if (!guild.hasRank(demoterUUID, GuildRank.OWNER)) return "no_permission";
+        if (!guild.isMember(targetUUID)) return "not_member";
+        GuildRank current = guild.getRank(targetUUID);
         if (current == GuildRank.OWNER) return "cant_demote_owner";
         if (current == GuildRank.MEMBER) return "already_member";
-        g.getMemberRanks().put(targetUUID, GuildRank.MEMBER);
+        guild.getMemberRanks().put(targetUUID, GuildRank.MEMBER);
         setDirty();
         return "ok";
     }
 
     public String transferOwnership(UUID guildId, UUID ownerUUID, UUID targetUUID) {
-        Guild g = guilds.get(guildId);
-        if (g == null) return "not_in_guild";
-        if (!g.getOwner().equals(ownerUUID)) return "no_permission";
-        if (!g.isMember(targetUUID)) return "not_member";
-        g.setOwner(targetUUID);
+        Guild guild = guilds.get(guildId);
+        if (guild == null) return "not_in_guild";
+        if (!guild.getOwner().equals(ownerUUID)) return "no_permission";
+        if (!guild.isMember(targetUUID)) return "not_member";
+        guild.setOwner(targetUUID);
         setDirty();
         return "ok";
     }

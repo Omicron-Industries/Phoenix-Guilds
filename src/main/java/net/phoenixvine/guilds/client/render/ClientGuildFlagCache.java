@@ -1,4 +1,4 @@
-package net.phoenixvine.guilds.client;
+package net.phoenixvine.guilds.client.render;
 
 import net.minecraft.client.Minecraft;
 import net.phoenixvine.guilds.network.C2SRequestGuildFlagPacket;

@@ -8,11 +8,13 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EntityBlock;
@@ -20,23 +22,29 @@ import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.phoenixvine.guilds.GuildAPI;
+import net.phoenixvine.guilds.client.ClientAccess;
 import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.data.GuildManager;
-import net.phoenixvine.guilds.event.GuildEvents;
+import net.phoenixvine.guilds.event.GuildActions;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 public class GuildFlagBlock extends Block implements EntityBlock {
 
-    public static final net.minecraft.world.level.block.state.properties.EnumProperty<DoubleBlockHalf> HALF = net.minecraft.world.level.block.state.properties.BlockStateProperties.DOUBLE_BLOCK_HALF;
+    public static final EnumProperty<DoubleBlockHalf> HALF = BlockStateProperties.DOUBLE_BLOCK_HALF;
 
     private static final VoxelShape SHAPE_LOWER = Block.box(7, 0, 7, 9, 16, 9);
     private static final VoxelShape SHAPE_UPPER = Block.box(7, 0, 7, 9, 16, 9);
@@ -52,17 +60,19 @@ public class GuildFlagBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public @NotNull VoxelShape getShape(BlockState state,
+                                        @NotNull BlockGetter level, @NotNull BlockPos pos,
+                                        @NotNull CollisionContext context) {
         return state.getValue(HALF) == DoubleBlockHalf.LOWER ? SHAPE_LOWER : SHAPE_UPPER;
     }
 
     @Override
-    public RenderShape getRenderShape(BlockState state) {
+    public @NotNull RenderShape getRenderShape(BlockState state) {
         return state.getValue(HALF) == DoubleBlockHalf.LOWER ? RenderShape.MODEL : RenderShape.INVISIBLE;
     }
 
     @Override
-    public boolean canSurvive(BlockState state, net.minecraft.world.level.LevelReader level, BlockPos pos) {
+    public boolean canSurvive(BlockState state, @NotNull LevelReader level, BlockPos pos) {
         BlockPos below = pos.below();
         if (state.getValue(HALF) == DoubleBlockHalf.LOWER) {
             return level.getBlockState(below).isFaceSturdy(level, below, Direction.UP);
@@ -72,8 +82,9 @@ public class GuildFlagBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public BlockState updateShape(BlockState state, Direction facing, BlockState facingState, LevelAccessor level,
-                                  BlockPos currentPos, BlockPos facingPos) {
+    public @NotNull BlockState updateShape(BlockState state, Direction facing,
+                                           @NotNull BlockState facingState, @NotNull LevelAccessor level,
+                                           @NotNull BlockPos currentPos, @NotNull BlockPos facingPos) {
         DoubleBlockHalf half = state.getValue(HALF);
         if (facing.getAxis() == Direction.Axis.Y && (half == DoubleBlockHalf.LOWER) == (facing == Direction.UP)) {
             return facingState.is(this) && facingState.getValue(HALF) != half ? state : Blocks.AIR.defaultBlockState();
@@ -84,12 +95,13 @@ public class GuildFlagBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+    public BlockEntity newBlockEntity(@NotNull BlockPos pos, BlockState state) {
         return state.getValue(HALF) == DoubleBlockHalf.LOWER ? new GuildFlagBlockEntity(pos, state) : null;
     }
 
     @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
+    public void setPlacedBy(@NotNull Level level, @NotNull BlockPos pos,
+                            @NotNull BlockState state, LivingEntity placer, @NotNull ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
         level.setBlock(pos.above(), state.setValue(HALF, DoubleBlockHalf.UPPER), 3);
         if (level.isClientSide() || !(placer instanceof Player player)) return;
@@ -101,8 +113,9 @@ public class GuildFlagBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
-                                 BlockHitResult hit) {
+    public @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level,
+                                          @NotNull BlockPos pos, @NotNull Player player, @NotNull InteractionHand hand,
+                                          @NotNull BlockHitResult hit) {
         if (hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
 
         BlockPos lowerPos = state.getValue(HALF) == DoubleBlockHalf.LOWER ? pos : pos.below();
@@ -123,7 +136,7 @@ public class GuildFlagBlock extends Block implements EntityBlock {
         if (held.isEmpty()) {
             if (level.isClientSide()) {
 
-                net.phoenixvine.guilds.client.ClientAccess.openFlagEditor(entity.getGuildId());
+                ClientAccess.openFlagEditor(entity.getGuildId());
             }
             return InteractionResult.sidedSuccess(level.isClientSide());
         }
@@ -135,7 +148,7 @@ public class GuildFlagBlock extends Block implements EntityBlock {
     }
 
     private static void applyHeldItemAsFlag(ServerPlayer player, UUID guildId, ItemStack held) {
-        GuildManager mgr = GuildManager.get(player.getServer().overworld());
+        GuildManager mgr = GuildManager.get(Objects.requireNonNull(player.getServer()).overworld());
         Optional<Guild> guildOpt = mgr.getGuildById(guildId);
         if (guildOpt.isEmpty()) {
             player.displayClientMessage(Component.literal("§cThat flag's guild no longer exists."), true);
@@ -148,11 +161,11 @@ public class GuildFlagBlock extends Block implements EntityBlock {
         }
 
         Item heldItem = held.getItem();
-        String iconId = heldItem instanceof net.minecraft.world.item.BlockItem blockItem &&
+        String iconId = heldItem instanceof BlockItem blockItem &&
                 blockItem.getBlock() != Blocks.AIR ?
                         "block:" + ForgeRegistries.BLOCKS.getKey(blockItem.getBlock()) :
                         "item:" + ForgeRegistries.ITEMS.getKey(heldItem);
-        GuildEvents.handleSetFlag(player, mgr, guildId, false, iconId, null, guild.getFlagWidth(),
+        GuildActions.handleSetFlag(player, mgr, guildId, false, iconId, null, guild.getFlagWidth(),
                 guild.getFlagHeight());
     }
 }

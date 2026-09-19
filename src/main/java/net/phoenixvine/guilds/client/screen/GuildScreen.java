@@ -1,4 +1,4 @@
-package net.phoenixvine.guilds.client;
+package net.phoenixvine.guilds.client.screen;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -7,12 +7,21 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.phoenixvine.guilds.client.render.ClientGuildCache;
+import net.phoenixvine.guilds.client.render.GuildFlagIconManager;
+import net.phoenixvine.guilds.client.render.GuildFlagPixelArt;
+import net.phoenixvine.guilds.data.GuildAction;
 import net.phoenixvine.guilds.network.C2SGuildActionPacket;
 import net.phoenixvine.guilds.network.GuildNetwork;
 import net.phoenixvine.guilds.network.S2CGuildSyncPacket;
+import net.phoenixvine.wiki.PhoenixWikiAPI;
+import net.phoenixvine.wiki.client.screen.WikiTheme;
+import net.phoenixvine.wiki.theme.PhoenixTheme;
+import net.phoenixvine.wiki.theme.PhoenixThemeEditorScreen;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
@@ -20,7 +29,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static net.phoenixvine.guilds.client.GuildThemeUtils.*;
 
@@ -40,6 +48,21 @@ public class GuildScreen extends Screen {
     private int scrollOff = 0;
 
     private String selectedWikiTitle = null;
+
+    private static final long STATUS_DURATION_MS = 4000L;
+    private String statusMessage = null;
+    private boolean statusError = false;
+    private long statusExpireAt = 0L;
+
+    public void showStatus(String message, boolean error) {
+        this.statusMessage = message;
+        this.statusError = error;
+        this.statusExpireAt = System.currentTimeMillis() + STATUS_DURATION_MS;
+    }
+
+    private boolean hasStatus() {
+        return statusMessage != null && System.currentTimeMillis() < statusExpireAt;
+    }
 
     private record InlineBtn(int x, int y, int w, int h, Runnable action, int colorNorm, int colorHover,
                              String label) {}
@@ -93,7 +116,7 @@ public class GuildScreen extends Screen {
             primaryBox.setMaxLength(32);
             addRenderableWidget(primaryBox);
             addRenderableWidget(btn("Create Guild", px + W / 2 - 55, py + CONTENT_TOP + 54, 110, 18,
-                    () -> act(C2SGuildActionPacket.Action.CREATE, primaryBox.getValue().trim())));
+                    () -> act(GuildAction.CREATE, primaryBox.getValue().trim())));
             return;
         }
         if (ClientGuildCache.isAtLeastOfficer()) {
@@ -102,7 +125,7 @@ public class GuildScreen extends Screen {
             addRenderableWidget(primaryBox);
             addRenderableWidget(btn("Invite", px + W - 100, py + H - 53, 90, 16,
                     () -> {
-                        act(C2SGuildActionPacket.Action.INVITE, primaryBox.getValue().trim());
+                        act(GuildAction.INVITE, primaryBox.getValue().trim());
                         primaryBox.setValue("");
                     }));
         }
@@ -110,7 +133,7 @@ public class GuildScreen extends Screen {
         int btnY = py + H - 28;
         addRenderableWidget(btn("Leave Guild", px + 10, btnY,
                 ClientGuildCache.isOwner() ? halfW : W - 20, 18,
-                () -> act(C2SGuildActionPacket.Action.LEAVE, "")));
+                () -> act(GuildAction.LEAVE, "")));
         if (ClientGuildCache.isOwner())
             addRenderableWidget(btn("Delete Guild", px + 14 + halfW, btnY, halfW, 18, this::confirmDisband));
     }
@@ -118,7 +141,7 @@ public class GuildScreen extends Screen {
     private void confirmDisband() {
         String name = ClientGuildCache.guildName != null ? ClientGuildCache.guildName : "this guild";
         Minecraft.getInstance().setScreen(new ConfirmScreen(confirmed -> {
-            if (confirmed) act(C2SGuildActionPacket.Action.DISBAND, "");
+            if (confirmed) act(GuildAction.DISBAND, "");
             Minecraft.getInstance().setScreen(this);
         }, Component.literal("§4Delete Guild"),
                 Component.literal("Permanently delete '" + name + "'? This cannot be undone. Every member, " +
@@ -133,7 +156,7 @@ public class GuildScreen extends Screen {
         addRenderableWidget(secondaryBox);
         addRenderableWidget(btn("Send Alliance request", px + W - 156, py + H - 53, 146, 16,
                 () -> {
-                    act(C2SGuildActionPacket.Action.ALLY_REQUEST, secondaryBox.getValue().trim());
+                    act(GuildAction.ALLY_REQUEST, secondaryBox.getValue().trim());
                     secondaryBox.setValue("");
                 }));
     }
@@ -144,7 +167,7 @@ public class GuildScreen extends Screen {
         primaryBox.setMaxLength(32);
         addRenderableWidget(primaryBox);
         addRenderableWidget(btn("Create Guild", px + W - 116, py + H - 53, 106, 16,
-                () -> act(C2SGuildActionPacket.Action.CREATE, primaryBox.getValue().trim())));
+                () -> act(GuildAction.CREATE, primaryBox.getValue().trim())));
     }
 
     private void buildWikiWidgets() {
@@ -295,16 +318,16 @@ public class GuildScreen extends Screen {
                 final String mName = m.name();
                 final String mRank = m.rank();
                 inlineBtns.add(new InlineBtn(bx, ry + 1, bw, bh,
-                        () -> act(C2SGuildActionPacket.Action.REMOVE, mName),
+                        () -> act(GuildAction.REMOVE, mName),
                         0xFF330A0A, 0xFF551010, "X"));
                 bx -= bw + 2;
                 if ("OFFICER".equals(mRank))
                     inlineBtns.add(new InlineBtn(bx, ry + 1, bw, bh,
-                            () -> act(C2SGuildActionPacket.Action.DEMOTE, mName),
+                            () -> act(GuildAction.DEMOTE, mName),
                             0xFF0A1033, 0xFF101855, "v"));
                 else
                     inlineBtns.add(new InlineBtn(bx, ry + 1, bw, bh,
-                            () -> act(C2SGuildActionPacket.Action.PROMOTE, mName),
+                            () -> act(GuildAction.PROMOTE, mName),
                             0xFF0A330A, 0xFF105510, "^"));
             }
         }
@@ -312,7 +335,10 @@ public class GuildScreen extends Screen {
         if (members.isEmpty()) g.drawCenteredString(font, "No members.", px + W / 2, listTop + 4, C_DIM);
         if (ClientGuildCache.isAtLeastOfficer()) {
             inlineBtns.add(new InlineBtn(px + W - 72, py + H - 70, 62, 14,
-                    () -> minecraft.setScreen(new GuildFlagEditorScreen(this)),
+                    () -> {
+                        assert minecraft != null;
+                        minecraft.setScreen(new GuildFlagEditorScreen(this));
+                    },
                     0xFF0A1A33, 0xFF10285A, "Edit Flag"));
             g.drawString(font, "Invite Player:", px + 10, py + H - 65, C_DIM, false);
         }
@@ -341,11 +367,11 @@ public class GuildScreen extends Screen {
                     int bx = px + W - 10 - bw;
                     final String rName = req.guildName();
                     inlineBtns.add(new InlineBtn(bx, ry + 1, bw, bh,
-                            () -> act(C2SGuildActionPacket.Action.ALLY_DECLINE, rName),
+                            () -> act(GuildAction.ALLY_DECLINE, rName),
                             0xFF330A10, 0xFF551020, "Decline"));
                     bx -= bw + 2;
                     inlineBtns.add(new InlineBtn(bx, ry + 1, bw, bh,
-                            () -> act(C2SGuildActionPacket.Action.ALLY_ACCEPT, rName),
+                            () -> act(GuildAction.ALLY_ACCEPT, rName),
                             0xFF0A3318, 0xFF105528, "Accept"));
                 }
             }
@@ -371,7 +397,7 @@ public class GuildScreen extends Screen {
                     int bx = px + W - 10 - font.width(cnt) - bw - 4;
                     final String aName = a.name();
                     inlineBtns.add(new InlineBtn(bx, ry + 1, bw, bh,
-                            () -> act(C2SGuildActionPacket.Action.ALLY_BREAK, aName),
+                            () -> act(GuildAction.ALLY_BREAK, aName),
                             0xFF330A10, 0xFF551020, "Break"));
                 }
             }
@@ -387,8 +413,14 @@ public class GuildScreen extends Screen {
                 g.drawString(font, "- " + outgoing.get(i).guildName(), px + 12, y + i * ROW_H + 3, C_DIM, false);
         }
 
-        if (ClientGuildCache.isAtLeastOfficer())
-            g.drawString(font, "Send Alliance request:", px + 10, py + H - 63, C_DIM, false);
+        if (ClientGuildCache.isAtLeastOfficer()) {
+            boolean showingStatus = hasStatus();
+            String label = showingStatus ? statusMessage : "Send Alliance request:";
+            int maxW = W - 20;
+            if (font.width(label) > maxW) label = font.plainSubstrByWidth(label, maxW - 6) + "…";
+            g.drawString(font, label, px + 10, py + H - 63,
+                    showingStatus ? (statusError ? C_ERROR : C_ONLINE) : C_DIM, false);
+        }
     }
 
     private void renderBrowseTab(GuiGraphics g) {
@@ -441,7 +473,7 @@ public class GuildScreen extends Screen {
             String time = fmt.format(new Date(e.timestamp()));
             int timeW = font.width(time);
             int msgMaxW = W - 26 - timeW;
-            List<net.minecraft.util.FormattedCharSequence> msgLines = font.split(Component.literal(e.message()),
+            List<FormattedCharSequence> msgLines = font.split(Component.literal(e.message()),
                     msgMaxW);
             int entryH = msgLines.size() * 9 + 2;
             if (altRow % 2 == 0) g.fill(px + 2, y, px + W - 2, y + entryH, C_ROW_ALT);
@@ -472,7 +504,7 @@ public class GuildScreen extends Screen {
         String query = wikiSearchBox != null ? wikiSearchBox.getValue().trim().toLowerCase() : "";
         List<S2CGuildSyncPacket.WikiPage> filtered = pages.stream()
                 .filter(p -> query.isEmpty() || p.title().toLowerCase().contains(query))
-                .collect(Collectors.toList());
+                .toList();
 
         int divX = lx + WIKI_LIST_W + 2;
         g.fill(divX, py + CONTENT_TOP, divX + 1, py + H - 2, C_BORDER2);
@@ -496,7 +528,10 @@ public class GuildScreen extends Screen {
 
         if (officer)
             inlineBtns.add(new InlineBtn(lx, py + H - 22, WIKI_LIST_W, 14,
-                    () -> minecraft.setScreen(new WikiEditScreen(this, "", "")),
+                    () -> {
+                        assert minecraft != null;
+                        minecraft.setScreen(new WikiEditScreen(this, "", ""));
+                    },
                     0xFF0A1A33, 0xFF10285A, "+ New Page"));
 
         for (int i = scrollOff; i < filtered.size() && i - scrollOff < maxRows; i++) {
@@ -523,7 +558,7 @@ public class GuildScreen extends Screen {
                 ry += 14;
                 int contentBot = py + H - (officer ? 26 : 10);
                 scissor(ry, contentBot - ry);
-                List<net.minecraft.util.FormattedCharSequence> lines = font.split(Component.literal(sel.content()), rw);
+                List<FormattedCharSequence> lines = font.split(Component.literal(sel.content()), rw);
                 for (int i = 0; i < lines.size(); i++)
                     g.drawString(font, lines.get(i), rx, ry + i * 10, C_TEXT, false);
                 RenderSystem.disableScissor();
@@ -533,11 +568,14 @@ public class GuildScreen extends Screen {
                     int bw = 46;
                     int by = py + H - 22;
                     inlineBtns.add(new InlineBtn(rx, by, bw, 14,
-                            () -> minecraft.setScreen(new WikiEditScreen(this, selTitle, selContent)),
+                            () -> {
+                                assert minecraft != null;
+                                minecraft.setScreen(new WikiEditScreen(this, selTitle, selContent));
+                            },
                             0xFF0A1A33, 0xFF10285A, "Edit"));
                     inlineBtns.add(new InlineBtn(rx + bw + 4, by, bw, 14,
                             () -> {
-                                act(C2SGuildActionPacket.Action.WIKI_DELETE, selTitle);
+                                act(GuildAction.WIKI_DELETE, selTitle);
                                 selectedWikiTitle = null;
                             },
                             0xFF330A0A, 0xFF551010, "Delete"));
@@ -552,12 +590,12 @@ public class GuildScreen extends Screen {
 
     private void openWiki() {
         if (minecraft == null) return;
-        net.phoenixvine.wiki.theme.PhoenixTheme t = net.phoenixvine.wiki.theme.PhoenixTheme.current();
-        net.phoenixvine.wiki.client.screen.WikiTheme wikiTheme = new net.phoenixvine.wiki.client.screen.WikiTheme(
-                t.bg.getColor(), t.panel.getColor(), t.header.getColor(), t.border.getColor(),
-                t.accent.getColor(), t.text.getColor(), t.textDim.getColor(), t.textFaint.getColor(),
-                t.done.getColor(), t.activeColor.getColor());
-        net.phoenixvine.wiki.PhoenixWikiAPI.open(this, "phoenix_guilds", "wiki", wikiTheme);
+        var theme = PhoenixTheme.current();
+        var wikiTheme = new WikiTheme(
+                theme.bg.getColor(), theme.panel.getColor(), theme.header.getColor(), theme.border.getColor(),
+                theme.accent.getColor(), theme.text.getColor(), theme.textDim.getColor(), theme.textFaint.getColor(),
+                theme.done.getColor(), theme.activeColor.getColor());
+        PhoenixWikiAPI.open(this, "phoenix_guilds", "wiki", wikiTheme);
     }
 
     @Override
@@ -578,7 +616,8 @@ public class GuildScreen extends Screen {
         int themesBtnX = px + W - 46;
         int themesBtnY = py + (HEADER - 8) / 2;
         if (mx >= themesBtnX && mx < themesBtnX + 40 && my >= themesBtnY && my < themesBtnY + 8) {
-            minecraft.setScreen(new net.phoenixvine.wiki.theme.PhoenixThemeEditorScreen(this, "Phoenix Guilds"));
+            assert minecraft != null;
+            minecraft.setScreen(new PhoenixThemeEditorScreen(this, "Phoenix Guilds"));
             return true;
         }
         int wikiBtnW = font.width("Wiki");
@@ -609,10 +648,10 @@ public class GuildScreen extends Screen {
         return true;
     }
 
-    private void act(C2SGuildActionPacket.Action action, String arg) {
-        boolean needsArg = action != C2SGuildActionPacket.Action.LEAVE &&
-                action != C2SGuildActionPacket.Action.DISBAND && action != C2SGuildActionPacket.Action.TOGGLE_FF &&
-                action != C2SGuildActionPacket.Action.HOME && action != C2SGuildActionPacket.Action.SET_HOME;
+    private void act(GuildAction action, String arg) {
+        boolean needsArg = action != GuildAction.LEAVE &&
+                action != GuildAction.DISBAND && action != GuildAction.TOGGLE_FF &&
+                action != GuildAction.HOME && action != GuildAction.SET_HOME;
         if (needsArg && arg.isEmpty()) return;
         GuildNetwork.CHANNEL.sendToServer(new C2SGuildActionPacket(action, arg));
     }
@@ -635,6 +674,7 @@ public class GuildScreen extends Screen {
     }
 
     private void scissor(int top, int h) {
+        assert minecraft != null;
         double scale = minecraft.getWindow().getGuiScale();
         int sh = minecraft.getWindow().getGuiScaledHeight();
         RenderSystem.enableScissor(

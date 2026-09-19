@@ -1,6 +1,7 @@
-package net.phoenixvine.guilds.client;
+package net.phoenixvine.guilds.client.render;
 
 import net.minecraft.client.Minecraft;
+import net.phoenixvine.guilds.client.screen.GuildScreen;
 import net.phoenixvine.guilds.data.Guild;
 import net.phoenixvine.guilds.network.S2CGuildSyncPacket;
 
@@ -36,11 +37,11 @@ public final class ClientGuildCache {
         if (mc.player == null) return;
 
         update(
-                pkt.getGuildName(), pkt.getOwnerUUID(), pkt.getMotd(), pkt.getDescription(),
-                pkt.isFriendlyFire(), pkt.isHomeSet(), pkt.getFlagIconId(), pkt.getFlagPixelData(),
-                pkt.isFlagUseDrawing(), pkt.getFlagWidth(), pkt.getFlagHeight(), pkt.getMembers(),
-                pkt.getAllies(), pkt.getPendingOutgoing(), pkt.getPendingIncoming(),
-                pkt.getLogEntries(), pkt.getWikiPages(), pkt.getAllGuilds());
+                pkt.guildName(), pkt.ownerUUID(), pkt.motd(), pkt.description(),
+                pkt.friendlyFire(), pkt.homeSet(), pkt.flagIconId(), pkt.flagPixelData(),
+                pkt.flagUseDrawing(), pkt.flagWidth(), pkt.flagHeight(), pkt.members(),
+                pkt.allies(), pkt.pendingOutgoing(), pkt.pendingIncoming(),
+                pkt.logEntries(), pkt.wikiPages(), pkt.allGuilds());
 
         if (mc.screen instanceof GuildScreen gs) {
             gs.onDataRefreshed();
@@ -96,26 +97,5 @@ public final class ClientGuildCache {
     public static boolean isAtLeastOfficer() {
         String r = myRank();
         return "OFFICER".equals(r) || "OWNER".equals(r);
-    }
-
-    public static void clear() {
-        guildName = null;
-        ownerUUID = null;
-        motd = "";
-        description = "";
-        friendlyFire = false;
-        homeSet = false;
-        flagIconId = "";
-        flagPixelData = "0".repeat(128);
-        flagUseDrawing = false;
-        flagWidth = 16;
-        flagHeight = 16;
-        members = List.of();
-        allies = List.of();
-        pendingOutgoing = List.of();
-        pendingIncoming = List.of();
-        logEntries = List.of();
-        wikiPages = List.of();
-        allGuilds = List.of();
     }
 }

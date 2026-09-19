@@ -12,6 +12,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -24,7 +26,7 @@ public class GuildFlagBlockItem extends BlockItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip,
+    public void appendHoverText(@NotNull ItemStack stack, @Nullable Level level, List<Component> tooltip,
                                 TooltipFlag flag) {
         tooltip.add(Component.translatable("item.phoenix_guilds.guild_flag.desc").withStyle(ChatFormatting.GRAY));
         tooltip.add(

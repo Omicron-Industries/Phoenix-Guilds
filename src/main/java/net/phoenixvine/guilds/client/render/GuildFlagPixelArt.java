@@ -1,4 +1,4 @@
-package net.phoenixvine.guilds.client;
+package net.phoenixvine.guilds.client.render;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -13,7 +13,6 @@ import net.phoenixvine.guilds.data.Guild;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import org.joml.Matrix4f;
 
 import java.util.HashMap;
@@ -37,11 +36,7 @@ public final class GuildFlagPixelArt {
 
     public static int colorAt(String pixelData, int idx) {
         int start = idx * CHARS_PER_PIXEL;
-        try {
-            return Integer.parseInt(pixelData, start, start + CHARS_PER_PIXEL, 16);
-        } catch (NumberFormatException e) {
-            return 0xFFFFFF;
-        }
+        return Integer.parseInt(pixelData, start, start + CHARS_PER_PIXEL, 16);
     }
 
     public static String toHex6(int rgb) {
@@ -80,10 +75,10 @@ public final class GuildFlagPixelArt {
     public static void render3D(UUID guildId, String pixelData, int flagWidth, int flagHeight, PoseStack poseStack,
                                 MultiBufferSource buffer, int packedLight) {
         if (pixelData == null || pixelData.length() < MAX_DIM * MAX_DIM * CHARS_PER_PIXEL) return;
-        ResourceLocation texture = textureFor(guildId, pixelData, flagWidth, flagHeight);
+        var texture = textureFor(guildId, pixelData, flagWidth, flagHeight);
 
         Matrix4f matrix = poseStack.last().pose();
-        VertexConsumer vertexConsumer = buffer.getBuffer(RenderType.entityTranslucent(texture));
+        var vertexConsumer = buffer.getBuffer(RenderType.entityTranslucent(texture));
 
         vertexConsumer.vertex(matrix, -0.5f, 0.5f, 0).color(255, 255, 255, 255).uv(0, 0)
                 .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
@@ -98,13 +93,13 @@ public final class GuildFlagPixelArt {
     private static ResourceLocation textureFor(UUID guildId, String pixelData, int flagWidth, int flagHeight) {
         int cols = cols(flagWidth);
         int rows = rows(flagHeight);
-        Baked existing = BAKED.get(guildId);
+        var existing = BAKED.get(guildId);
         if (existing != null && existing.pixelData().equals(pixelData) && existing.cols() == cols &&
                 existing.rows() == rows) {
             return existing.location();
         }
 
-        NativeImage image = new NativeImage(cols, rows, false);
+        var image = new NativeImage(cols, rows, false);
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
                 int rgb = colorAt(pixelData, row * MAX_DIM + col);
@@ -117,7 +112,7 @@ public final class GuildFlagPixelArt {
         }
         DynamicTexture texture = new DynamicTexture(image);
         texture.setFilter(false, false);
-        ResourceLocation loc = new ResourceLocation(PhoenixGuilds.MOD_ID,
+        var loc = ResourceLocation.fromNamespaceAndPath(PhoenixGuilds.MOD_ID,
                 "dynamic/guild_flag_pixel_art_" + guildId);
         Minecraft.getInstance().getTextureManager().register(loc, texture);
 

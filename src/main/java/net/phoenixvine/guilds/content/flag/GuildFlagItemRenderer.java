@@ -6,20 +6,22 @@ import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
+import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.phoenixvine.guilds.PhoenixGuilds;
-import net.phoenixvine.guilds.client.ClientGuildCache;
-import net.phoenixvine.guilds.client.GuildFlagContentRenderer;
+import net.phoenixvine.guilds.client.render.ClientGuildCache;
+import net.phoenixvine.guilds.client.render.GuildFlagContentRenderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 
 public class GuildFlagItemRenderer extends BlockEntityWithoutLevelRenderer {
 
-    private static final ResourceLocation POLE_TEXTURE = new ResourceLocation(PhoenixGuilds.MOD_ID,
+    private static final ResourceLocation POLE_TEXTURE = ResourceLocation.fromNamespaceAndPath(PhoenixGuilds.MOD_ID,
             "textures/block/guilds_flag.png");
     private static final float POLE_MIN = 7f / 16f;
     private static final float POLE_MAX = 9f / 16f;
@@ -31,8 +33,9 @@ public class GuildFlagItemRenderer extends BlockEntityWithoutLevelRenderer {
     }
 
     @Override
-    public void renderByItem(ItemStack stack, ItemDisplayContext displayContext, PoseStack poseStack,
-                             MultiBufferSource buffer, int packedLight, int packedOverlay) {
+    public void renderByItem(@NotNull ItemStack stack, @NotNull ItemDisplayContext displayContext,
+                             @NotNull PoseStack poseStack,
+                             @NotNull MultiBufferSource buffer, int packedLight, int packedOverlay) {
         if (displayContext == ItemDisplayContext.GUI) {
             renderGuiIcon(poseStack, buffer, packedLight, packedOverlay);
             return;
@@ -50,7 +53,7 @@ public class GuildFlagItemRenderer extends BlockEntityWithoutLevelRenderer {
 
         GuildFlagContentRenderer.render(mc.player.getUUID(), ClientGuildCache.flagUseDrawing,
                 ClientGuildCache.flagIconId, ClientGuildCache.flagPixelData, ClientGuildCache.flagWidth,
-                ClientGuildCache.flagHeight, net.minecraft.core.Direction.NORTH, poseStack, buffer, packedLight,
+                ClientGuildCache.flagHeight, Direction.NORTH, poseStack, buffer, packedLight,
                 packedOverlay, mc.level);
         poseStack.popPose();
     }

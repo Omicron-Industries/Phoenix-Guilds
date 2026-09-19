@@ -1,4 +1,4 @@
-package net.phoenixvine.guilds.client;
+package net.phoenixvine.guilds.client.screen;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,6 +10,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.phoenixvine.guilds.client.render.ClientGuildCache;
+import net.phoenixvine.guilds.client.render.GuildFlagIconManager;
+import net.phoenixvine.guilds.client.render.GuildFlagPixelArt;
 import net.phoenixvine.guilds.network.C2SSetGuildFlagPacket;
 import net.phoenixvine.guilds.network.GuildNetwork;
 

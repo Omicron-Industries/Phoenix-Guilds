@@ -10,10 +10,14 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
+import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+@Getter
 public class GuildFlagBlockEntity extends BlockEntity {
 
     private UUID guildId;
@@ -22,14 +26,6 @@ public class GuildFlagBlockEntity extends BlockEntity {
 
     public GuildFlagBlockEntity(BlockPos pos, BlockState state) {
         super(GuildFlagBlocks.GUILD_FLAG_ENTITY.get(), pos, state);
-    }
-
-    public UUID getGuildId() {
-        return guildId;
-    }
-
-    public Direction getFacing() {
-        return facing;
     }
 
     public void setFacing(Direction facing) {
@@ -47,14 +43,14 @@ public class GuildFlagBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag) {
+    protected void saveAdditional(@NotNull CompoundTag tag) {
         super.saveAdditional(tag);
         if (guildId != null) tag.putUUID("guildId", guildId);
         tag.putString("facing", facing.getSerializedName());
     }
 
     @Override
-    public void load(CompoundTag tag) {
+    public void load(@NotNull CompoundTag tag) {
         super.load(tag);
         guildId = tag.hasUUID("guildId") ? tag.getUUID("guildId") : null;
         facing = tag.contains("facing") ? Direction.byName(tag.getString("facing")) : Direction.NORTH;
@@ -68,7 +64,7 @@ public class GuildFlagBlockEntity extends BlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag() {
+    public @NotNull CompoundTag getUpdateTag() {
         return saveWithoutMetadata();
     }
 

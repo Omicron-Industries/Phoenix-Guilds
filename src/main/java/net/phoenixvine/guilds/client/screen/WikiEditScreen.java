@@ -1,4 +1,4 @@
-package net.phoenixvine.guilds.client;
+package net.phoenixvine.guilds.client.screen;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
@@ -14,9 +14,11 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.phoenixvine.guilds.data.GuildAction;
 import net.phoenixvine.guilds.network.C2SGuildActionPacket;
 import net.phoenixvine.guilds.network.GuildNetwork;
 
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -88,8 +90,8 @@ public class WikiEditScreen extends Screen {
         renderColorPicker(g, mx, my);
         int btnY = py + H - 20;
         int half = W / 2 - 6;
-        drawBtn(g, mx, my, px + 4, btnY, half, 16, "Confirm", 0xFF0A3318, 0xFF105528);
-        drawBtn(g, mx, my, px + W / 2 + 2, btnY, half, 16, "Cancel", 0xFF330A0A, 0xFF551010);
+        drawBtn(g, mx, my, px + 4, btnY, half, "Confirm", 0xFF0A3318, 0xFF105528);
+        drawBtn(g, mx, my, px + W / 2 + 2, btnY, half, "Cancel", 0xFF330A0A, 0xFF551010);
     }
 
     private void renderColorPicker(GuiGraphics g, int mx, int my) {
@@ -107,14 +109,14 @@ public class WikiEditScreen extends Screen {
         }
     }
 
-    private void drawBtn(GuiGraphics g, int mx, int my, int x, int y, int w, int h, String label, int col, int colHov) {
-        boolean hov = mx >= x && mx < x + w && my >= y && my < y + h;
-        g.fill(x, y, x + w, y + h, hov ? colHov : col);
+    private void drawBtn(GuiGraphics g, int mx, int my, int x, int y, int w, String label, int col, int colHov) {
+        boolean hov = mx >= x && mx < x + w && my >= y && my < y + 16;
+        g.fill(x, y, x + w, y + 16, hov ? colHov : col);
         if (hov) {
             g.fill(x, y, x + w, y + 1, C_ACCENT);
-            g.fill(x, y + h - 1, x + w, y + h, C_ACCENT);
+            g.fill(x, y + 16 - 1, x + w, y + 16, C_ACCENT);
         }
-        g.drawCenteredString(font, label, x + w / 2, y + (h - 8) / 2, hov ? C_ACCENT : C_TEXT);
+        g.drawCenteredString(font, label, x + w / 2, y + (16 - 8) / 2, hov ? C_ACCENT : C_TEXT);
     }
 
     @Override
@@ -127,7 +129,7 @@ public class WikiEditScreen extends Screen {
             confirm();
             return true;
         }
-        if (mx >= px + W / 2 + 2 && mx < px + W && my >= btnY && my < btnY + 16) {
+        if (mx >= px + (double) W / 2 + 2 && mx < px + W && my >= btnY && my < btnY + 16) {
             Minecraft.getInstance().setScreen(parent);
             return true;
         }
@@ -166,7 +168,7 @@ public class WikiEditScreen extends Screen {
         if (title.isEmpty()) return;
 
         GuildNetwork.CHANNEL.sendToServer(
-                new C2SGuildActionPacket(C2SGuildActionPacket.Action.WIKI_SET, title + '' + content));
+                new C2SGuildActionPacket(GuildAction.WIKI_SET, title + '.' + content));
         Minecraft.getInstance().setScreen(parent);
     }
 
@@ -267,7 +269,7 @@ public class WikiEditScreen extends Screen {
             LinePos lp = lineCache.get(row);
             int local = (int) (mx - (getX() + 5));
             int off = 0;
-            int vw = 0;
+            int vw;
             while (off < lp.text.length()) {
                 if (lp.text.charAt(off) == '§' && off + 1 < lp.text.length()) {
                     off += 2;
@@ -280,23 +282,11 @@ public class WikiEditScreen extends Screen {
             return lp.start + off;
         }
 
-        private void setCursorDirect(int pos) {
-            try {
-                java.lang.reflect.Field f;
-                try {
-                    f = MultilineTextField.class.getDeclaredField("cursor");
-                } catch (NoSuchFieldException e) {
-                    f = MultilineTextField.class.getDeclaredField("f_239201_");
-                }
-                f.setAccessible(true);
-                f.setInt(tf, pos);
-            } catch (Exception ignored) {}
-        }
-
         @Override
         public boolean mouseClicked(double mx, double my, int btn) {
             if (mx >= getX() && mx < getX() + width && my >= getY() && my < getY() + height) {
                 setFocused(true);
+                tf.setSelecting(Screen.hasShiftDown());
                 tf.seekCursor(Whence.ABSOLUTE, coordToIndex(mx, my));
                 return true;
             }
@@ -307,7 +297,8 @@ public class WikiEditScreen extends Screen {
         @Override
         public boolean mouseDragged(double mx, double my, int btn, double dx, double dy) {
             if (isFocused() && btn == 0) {
-                setCursorDirect(coordToIndex(mx, my));
+                tf.setSelecting(true);
+                tf.seekCursor(Whence.ABSOLUTE, coordToIndex(mx, my));
                 return true;
             }
             return super.mouseDragged(mx, my, btn, dx, dy);
@@ -333,7 +324,7 @@ public class WikiEditScreen extends Screen {
         }
 
         @Override
-        protected void updateWidgetNarration(NarrationElementOutput out) {}
+        protected void updateWidgetNarration(@NotNull NarrationElementOutput out) {}
 
         private record LinePos(int start, int end, String text) {}
     }

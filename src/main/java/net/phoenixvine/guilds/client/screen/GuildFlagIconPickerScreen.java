@@ -1,4 +1,4 @@
-package net.phoenixvine.guilds.client;
+package net.phoenixvine.guilds.client.screen;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -9,9 +9,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.phoenixvine.guilds.client.render.GuildFlagIconManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,7 +55,7 @@ public class GuildFlagIconPickerScreen extends Screen {
         if (allItems == null) {
             List<ItemStack> out = new ArrayList<>();
             for (Item item : ForgeRegistries.ITEMS.getValues()) {
-                if (item == net.minecraft.world.item.Items.AIR) continue;
+                if (item == Items.AIR) continue;
                 out.add(new ItemStack(item));
             }
             out.sort((a, b) -> a.getHoverName().getString().compareToIgnoreCase(b.getHoverName().getString()));

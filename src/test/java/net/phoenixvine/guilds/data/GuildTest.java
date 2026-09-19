@@ -11,10 +11,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class GuildTest {
 
     static final UUID OWNER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
-    static final UUID MEMBER_A  = UUID.fromString("00000000-0000-0000-0000-000000000002");
-    static final UUID MEMBER_B  = UUID.fromString("00000000-0000-0000-0000-000000000003");
-    static final UUID OUTSIDER  = UUID.fromString("00000000-0000-0000-0000-000000000099");
-    static final UUID GUILD_ID  = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+    static final UUID MEMBER_A = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    static final UUID MEMBER_B = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    static final UUID OUTSIDER = UUID.fromString("00000000-0000-0000-0000-000000000099");
+    static final UUID GUILD_ID = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
     Guild guild;
 
@@ -84,7 +84,7 @@ class GuildTest {
         void addMemberDoesNotDowngradeExistingOfficer() {
             guild.addMember(MEMBER_A);
             guild.getMemberRanks().put(MEMBER_A, GuildRank.OFFICER);
-            guild.addMember(MEMBER_A); 
+            guild.addMember(MEMBER_A);
             assertEquals(GuildRank.OFFICER, guild.getRank(MEMBER_A));
         }
     }

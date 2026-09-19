@@ -3,48 +3,18 @@ package net.phoenixvine.guilds.network;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
+import net.phoenixvine.guilds.data.GuildAction;
 import net.phoenixvine.guilds.data.GuildManager;
-import net.phoenixvine.guilds.event.GuildEvents;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 
-public class C2SGuildActionPacket {
+import static net.phoenixvine.guilds.event.GuildActions.*;
 
-    public enum Action {
-        CREATE,
-        INVITE,
-        REMOVE,
-        LEAVE,
-        DISBAND,
-        PROMOTE,
-        DEMOTE,
-        TRANSFER,
-        SET_MOTD,
-        SET_DESC,
-        TOGGLE_FF,
-        SET_HOME,
-        HOME,
-        ALLY_REQUEST,
-        ALLY_ACCEPT,
-        ALLY_DECLINE,
-        ALLY_BREAK,
-        GUILD_CHAT,
-        ALLY_CHAT,
-        WIKI_SET,
-        WIKI_DELETE
-    }
-
-    private final Action action;
-    private final String arg;
-
-    public C2SGuildActionPacket(Action action, String arg) {
-        this.action = action;
-        this.arg = arg;
-    }
+public record C2SGuildActionPacket(GuildAction action, String arg) {
 
     public C2SGuildActionPacket(FriendlyByteBuf buf) {
-        this.action = buf.readEnum(Action.class);
-        this.arg = buf.readUtf(GuildNetworkLimits.ACTION_ARG_MAX);
+        this(buf.readEnum(GuildAction.class), buf.readUtf(GuildNetworkLimits.ACTION_ARG_MAX));
     }
 
     public void encode(FriendlyByteBuf buf) {
@@ -56,29 +26,29 @@ public class C2SGuildActionPacket {
         ctx.get().enqueueWork(() -> {
             ServerPlayer player = ctx.get().getSender();
             if (player == null) return;
-            GuildManager mgr = GuildManager.get(player.getServer().overworld());
+            GuildManager mgr = GuildManager.get(Objects.requireNonNull(player.getServer()).overworld());
             switch (action) {
-                case CREATE -> GuildEvents.handleCreate(player, mgr, arg);
-                case INVITE -> GuildEvents.handleInvite(player, mgr, arg);
-                case REMOVE -> GuildEvents.handleRemove(player, mgr, arg);
-                case LEAVE -> GuildEvents.handleLeave(player, mgr);
-                case DISBAND -> GuildEvents.handleDisband(player, mgr);
-                case PROMOTE -> GuildEvents.handlePromote(player, mgr, arg);
-                case DEMOTE -> GuildEvents.handleDemote(player, mgr, arg);
-                case TRANSFER -> GuildEvents.handleTransfer(player, mgr, arg);
-                case SET_MOTD -> GuildEvents.handleSetMotd(player, mgr, arg);
-                case SET_DESC -> GuildEvents.handleSetDesc(player, mgr, arg);
-                case TOGGLE_FF -> GuildEvents.handleToggleFF(player, mgr);
-                case SET_HOME -> GuildEvents.handleSetHome(player, mgr);
-                case HOME -> GuildEvents.handleHome(player, mgr);
-                case ALLY_REQUEST -> GuildEvents.handleAllyRequest(player, mgr, arg);
-                case ALLY_ACCEPT -> GuildEvents.handleAllyAccept(player, mgr, arg);
-                case ALLY_DECLINE -> GuildEvents.handleAllyDecline(player, mgr, arg);
-                case ALLY_BREAK -> GuildEvents.handleAllyBreak(player, mgr, arg);
-                case GUILD_CHAT -> GuildEvents.handleGuildChat(player, mgr, arg);
-                case ALLY_CHAT -> GuildEvents.handleAllyChat(player, mgr, arg);
-                case WIKI_SET -> GuildEvents.handleWikiSet(player, mgr, arg);
-                case WIKI_DELETE -> GuildEvents.handleWikiDelete(player, mgr, arg);
+                case CREATE -> handleCreate(player, mgr, arg);
+                case INVITE -> handleInvite(player, mgr, arg);
+                case REMOVE -> handleRemove(player, mgr, arg);
+                case LEAVE -> handleLeave(player, mgr);
+                case DISBAND -> handleDisband(player, mgr);
+                case PROMOTE -> handlePromote(player, mgr, arg);
+                case DEMOTE -> handleDemote(player, mgr, arg);
+                case TRANSFER -> handleTransfer(player, mgr, arg);
+                case SET_MOTD -> handleSetMotd(player, mgr, arg);
+                case SET_DESC -> handleSetDesc(player, mgr, arg);
+                case TOGGLE_FF -> handleToggleFF(player, mgr);
+                case SET_HOME -> handleSetHome(player, mgr);
+                case HOME -> handleHome(player, mgr);
+                case ALLY_REQUEST -> handleAllyRequest(player, mgr, arg);
+                case ALLY_ACCEPT -> handleAllyAccept(player, mgr, arg);
+                case ALLY_DECLINE -> handleAllyDecline(player, mgr, arg);
+                case ALLY_BREAK -> handleAllyBreak(player, mgr, arg);
+                case GUILD_CHAT -> handleGuildChat(player, mgr, arg);
+                case ALLY_CHAT -> handleAllyChat(player, mgr, arg);
+                case WIKI_SET -> handleWikiSet(player, mgr, arg);
+                case WIKI_DELETE -> handleWikiDelete(player, mgr, arg);
             }
         });
         ctx.get().setPacketHandled(true);

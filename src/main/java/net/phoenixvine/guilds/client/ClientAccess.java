@@ -1,6 +1,7 @@
 package net.phoenixvine.guilds.client;
 
 import net.minecraft.client.Minecraft;
+import net.phoenixvine.guilds.client.screen.GuildFlagEditorScreen;
 
 import java.util.UUID;
 

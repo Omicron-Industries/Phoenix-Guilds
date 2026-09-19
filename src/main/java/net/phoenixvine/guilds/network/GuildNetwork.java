@@ -19,7 +19,7 @@ public class GuildNetwork {
 
     public static void init() {
         CHANNEL = NetworkRegistry.newSimpleChannel(
-                new ResourceLocation(PhoenixGuilds.MOD_ID, "main"),
+                ResourceLocation.fromNamespaceAndPath(PhoenixGuilds.MOD_ID, "main"),
                 () -> PROTOCOL,
                 PROTOCOL::equals,
                 PROTOCOL::equals);
@@ -34,7 +34,7 @@ public class GuildNetwork {
         CHANNEL.registerMessage(id++,
                 C2SSetGuildFlagPacket.class,
                 C2SSetGuildFlagPacket::encode,
-                C2SSetGuildFlagPacket::new,
+                C2SSetGuildFlagPacket::decode,
                 C2SSetGuildFlagPacket::handle,
                 Optional.of(NetworkDirection.PLAY_TO_SERVER));
 
@@ -48,7 +48,7 @@ public class GuildNetwork {
         CHANNEL.registerMessage(id++,
                 S2CGuildSyncPacket.class,
                 S2CGuildSyncPacket::encode,
-                S2CGuildSyncPacket::new,
+                S2CGuildSyncPacket::decode,
                 (pkt, ctxSupplier) -> {
                     NetworkEvent.Context ctx = ctxSupplier.get();
                     ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
@@ -64,7 +64,7 @@ public class GuildNetwork {
                 (pkt, ctxSupplier) -> {
                     NetworkEvent.Context ctx = ctxSupplier.get();
                     ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                            () -> () -> GuildPacketHandlerClient.handleOpenScreenPacket()));
+                            () -> GuildPacketHandlerClient::handleOpenScreenPacket));
                     ctx.setPacketHandled(true);
                 },
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));
@@ -77,6 +77,18 @@ public class GuildNetwork {
                     NetworkEvent.Context ctx = ctxSupplier.get();
                     ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                             () -> () -> GuildPacketHandlerClient.handleClientFlagPacket(pkt)));
+                    ctx.setPacketHandled(true);
+                },
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+
+        CHANNEL.registerMessage(id++,
+                S2CGuildStatusPacket.class,
+                S2CGuildStatusPacket::encode,
+                S2CGuildStatusPacket::new,
+                (pkt, ctxSupplier) -> {
+                    NetworkEvent.Context ctx = ctxSupplier.get();
+                    ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                            () -> () -> GuildPacketHandlerClient.handleStatusPacket(pkt)));
                     ctx.setPacketHandled(true);
                 },
                 Optional.of(NetworkDirection.PLAY_TO_CLIENT));

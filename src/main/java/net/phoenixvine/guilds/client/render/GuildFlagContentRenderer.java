@@ -1,4 +1,4 @@
-package net.phoenixvine.guilds.client;
+package net.phoenixvine.guilds.client.render;
 
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -9,9 +9,7 @@ import net.minecraft.world.level.Level;
 import net.phoenixvine.guilds.PhoenixGuilds;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import org.joml.Matrix4f;
 
 import java.util.UUID;
 
@@ -27,7 +25,7 @@ public final class GuildFlagContentRenderer {
     private static final double Z_FIGHT_OFFSET = 0.005;
     private static final double BACKING_OFFSET = Z_FIGHT_OFFSET / 2;
 
-    private static final ResourceLocation BACKING_TEXTURE = new ResourceLocation(PhoenixGuilds.MOD_ID,
+    private static final ResourceLocation BACKING_TEXTURE = ResourceLocation.fromNamespaceAndPath(PhoenixGuilds.MOD_ID,
             "textures/block/guild_flag_backing.png");
 
     private static final String SELF_RECURSIVE_ICON = "item:" + PhoenixGuilds.MOD_ID + ":guild_flag";
@@ -50,8 +48,8 @@ public final class GuildFlagContentRenderer {
             poseStack.translate(0.5 + Math.signum(rotationDeg) * BACKING_OFFSET, RENDER_Y, RENDER_Z);
             poseStack.mulPose(Axis.YP.rotationDegrees(90));
             poseStack.scale(scaleX, scaleY, 1f);
-            Matrix4f matrix = poseStack.last().pose();
-            VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(BACKING_TEXTURE));
+            var matrix = poseStack.last().pose();
+            var vc = buffer.getBuffer(RenderType.entityTranslucent(BACKING_TEXTURE));
             vc.vertex(matrix, -0.5f, 0.5f, 0).color(255, 255, 255, 255).uv(0, 0)
                     .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
             vc.vertex(matrix, 0.5f, 0.5f, 0).color(255, 255, 255, 255).uv(1, 0)
@@ -74,8 +72,8 @@ public final class GuildFlagContentRenderer {
         poseStack.pushPose();
         poseStack.translate(0.5, 0.5, 0.5);
         poseStack.scale(scaleX * iconScale, scaleY * iconScale, 1f);
-        Matrix4f matrix = poseStack.last().pose();
-        VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(BACKING_TEXTURE));
+        var matrix = poseStack.last().pose();
+        var vc = buffer.getBuffer(RenderType.entityTranslucent(BACKING_TEXTURE));
         vc.vertex(matrix, -0.5f, 0.5f, 0).color(255, 255, 255, 255).uv(0, 0)
                 .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight).normal(0, 0, 1).endVertex();
         vc.vertex(matrix, 0.5f, 0.5f, 0).color(255, 255, 255, 255).uv(1, 0)

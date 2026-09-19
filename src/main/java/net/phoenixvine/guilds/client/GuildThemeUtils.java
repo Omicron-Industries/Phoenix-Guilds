@@ -21,6 +21,7 @@ public final class GuildThemeUtils {
     public static final int C_ROW_ALT = 0x0AFFFFFF;
     public static final int C_ONLINE = 0xFF33EE77;
     public static final int C_OFFLINE = 0xFF444466;
+    public static final int C_ERROR = 0xFFFF5555;
     public static final int C_GOLD = 0xFFFFCC22;
     public static final int C_OFFICER = 0xFF88AAFF;
 

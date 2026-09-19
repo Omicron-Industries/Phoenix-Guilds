@@ -9,6 +9,7 @@ import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.phoenixvine.guilds.PhoenixGuilds;
+import net.phoenixvine.guilds.client.screen.GuildScreen;
 import net.phoenixvine.guilds.content.flag.GuildFlagBlockEntityRenderer;
 import net.phoenixvine.guilds.content.flag.GuildFlagBlocks;
 import net.phoenixvine.wiki.client.suite.SuiteHudBar;
@@ -23,6 +24,7 @@ public class PhoenixGuildsClient {
 
         modEventBus.addListener(PhoenixGuildsClient::registerRenderers);
 
+        PhoenixTheme.registerMod("net.phoenixvine.guilds", PhoenixGuilds.MOD_ID);
         PhoenixTheme.addChangeListener(GuildThemeUtils::refreshCache);
     }
 

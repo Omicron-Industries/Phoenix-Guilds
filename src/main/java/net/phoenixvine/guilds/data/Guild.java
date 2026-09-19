@@ -6,6 +6,9 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashMap;
@@ -14,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+@Setter
+@Getter
 public class Guild {
 
     public static final int MAX_MEMBERS = 30;
@@ -23,7 +28,7 @@ public class Guild {
     public record LogEntry(long timestamp, String message) {}
 
     private final UUID id;
-    private String name;
+    private final String name;
     private UUID owner;
 
     private final Set<UUID> members = new LinkedHashSet<>();
@@ -79,91 +84,11 @@ public class Guild {
         memberRanks.put(owner, GuildRank.OWNER);
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String n) {
-        this.name = n;
-    }
-
-    public UUID getOwner() {
-        return owner;
-    }
-
     public void setOwner(UUID u) {
         if (memberRanks.containsKey(this.owner))
             memberRanks.put(this.owner, GuildRank.OFFICER);
         this.owner = u;
         memberRanks.put(u, GuildRank.OWNER);
-    }
-
-    public Set<UUID> getMembers() {
-        return members;
-    }
-
-    public Map<UUID, GuildRank> getMemberRanks() {
-        return memberRanks;
-    }
-
-    public Set<UUID> getAllies() {
-        return allies;
-    }
-
-    public Set<UUID> getPendingOutgoing() {
-        return pendingOutgoing;
-    }
-
-    public Deque<LogEntry> getLog() {
-        return log;
-    }
-
-    public String getMotd() {
-        return motd;
-    }
-
-    public void setMotd(String m) {
-        this.motd = m;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String d) {
-        this.description = d;
-    }
-
-    public boolean isFriendlyFire() {
-        return friendlyFire;
-    }
-
-    public void setFriendlyFire(boolean ff) {
-        this.friendlyFire = ff;
-    }
-
-    public String getFlagIconId() {
-        return flagIconId;
-    }
-
-    public String getFlagPixelData() {
-        return flagPixelData;
-    }
-
-    public boolean isFlagUseDrawing() {
-        return flagUseDrawing;
-    }
-
-    public int getFlagWidth() {
-        return flagWidth;
-    }
-
-    public int getFlagHeight() {
-        return flagHeight;
     }
 
     public void setFlag(boolean useDrawing, String iconId, String pixelData, int width, int height) {
@@ -177,30 +102,6 @@ public class Guild {
 
     public boolean isHomeSet() {
         return homeDimension != null;
-    }
-
-    public double getHomeX() {
-        return homeX;
-    }
-
-    public double getHomeY() {
-        return homeY;
-    }
-
-    public double getHomeZ() {
-        return homeZ;
-    }
-
-    public float getHomeYaw() {
-        return homeYaw;
-    }
-
-    public float getHomePitch() {
-        return homePitch;
-    }
-
-    public ResourceLocation getHomeDimension() {
-        return homeDimension;
     }
 
     public void setHome(ResourceLocation dim, double x, double y, double z, float yaw, float pitch) {
@@ -256,14 +157,6 @@ public class Guild {
 
     public void removePendingOutgoing(UUID guildId) {
         pendingOutgoing.remove(guildId);
-    }
-
-    public Map<String, String> getWikiPages() {
-        return wikiPages;
-    }
-
-    public int getWikiPageCount() {
-        return wikiPages.size();
     }
 
     public boolean isFull() {
@@ -362,7 +255,7 @@ public class Guild {
         if (tag.contains("flagHeight")) g.flagHeight = tag.getInt("flagHeight");
 
         if (tag.contains("homeDim")) {
-            g.homeDimension = new ResourceLocation(tag.getString("homeDim"));
+            g.homeDimension = ResourceLocation.parse(tag.getString("homeDim"));
             g.homeX = tag.getDouble("homeX");
             g.homeY = tag.getDouble("homeY");
             g.homeZ = tag.getDouble("homeZ");

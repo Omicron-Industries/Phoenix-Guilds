@@ -4,5 +4,6 @@
   "block.phoenix_guilds.guild_flag": "Guild Flag",
   "item.phoenix_guilds.guild_flag": "Guild Flag",
   "item.phoenix_guilds.guild_flag.desc": "Displays your guild's flag. Right-click empty-handed to edit, or right-click holding an item/block to set it as the flag.",
-  "item.phoenix_guilds.guild_flag.credit": "Model by GearsMonger"
+  "item.phoenix_guilds.guild_flag.credit": "Model by GearsMonger",
+  "gtceu.ownership.name.phoenix_guilds": "Phoenix Guilds"
 }
