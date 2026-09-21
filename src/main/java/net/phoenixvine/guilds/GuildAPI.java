@@ -240,6 +240,40 @@ public final class GuildAPI {
         return "Player: " + playerUUID.toString().substring(0, 8);
     }
 
+    /**
+     * Resolves a standard string identifier for a player's guild context.
+     * Useful for external mods looking to query guild affiliation.
+     *
+     * @return an Optional containing the formatted guild identifier
+     *         or an empty if the player is not in a guild or the server is unavailable.
+     */
+    public static Optional<String> getGuildIdentifierString(ServerPlayer player) {
+        if (player == null) return Optional.empty();
+        MinecraftServer server = player.getServer();
+        if (server == null) return Optional.empty();
+
+        GuildManager guildMgr = GuildManager.get(server.overworld());
+        if (guildMgr == null) return Optional.empty();
+
+        return guildMgr.getGuildFor(player.getUUID())
+                .map(guild -> "guild:" + guild.getId());
+    }
+
+    /**
+     * Overload taking a player UUID directly, utilizing the global server lifecycle hook.
+     */
+    public static Optional<String> getGuildIdentifierString(UUID playerUUID) {
+        if (playerUUID == null) return Optional.empty();
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return Optional.empty();
+
+        GuildManager guildMgr = GuildManager.get(server.overworld());
+        if (guildMgr == null) return Optional.empty();
+
+        return guildMgr.getGuildFor(playerUUID)
+                .map(guild -> "guild:" + guild.getId());
+    }
+
     private static GuildManager manager() {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return null;
