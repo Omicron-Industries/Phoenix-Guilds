@@ -15,7 +15,7 @@ license = "${mod_license}"
     # This will be displayed as your mod's logo in the Mods panel.
      logoFile="guilds.png"
     authors="${mod_author}"
-    description = '''
+    description = '''*
 A simple and reliable teams mod with a flag block, themes, and a powerful UI.
 '''
 
@@ -37,4 +37,9 @@ A simple and reliable teams mod with a flag block, themes, and a powerful UI.
         versionRange = "[${gtceu_version},)"
         ordering = "AFTER"
         side = "BOTH"
-
+[[dependencies.${mod_id}]]
+modId="phoenix_wiki"
+mandatory=true
+versionRange="[0.4.7,)"
+ordering="NONE"
+side="BOTH"
