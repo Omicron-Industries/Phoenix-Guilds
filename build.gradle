@@ -156,8 +156,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.24'
     annotationProcessor 'org.projectlombok:lombok:1.18.24'
 
-
-    jarJar(modImplementation("net.phoenixvine.wiki:phoenix_wiki:0.4.7"))
+    modImplementation("net.phoenixvine.wiki:phoenix_wiki:0.4.7")
 }
 
 
